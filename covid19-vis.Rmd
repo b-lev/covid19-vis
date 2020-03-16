@@ -10,7 +10,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=F)
+knitr::opts_chunk$set(echo = F,cache=T)
 ```
 
 
@@ -91,7 +91,7 @@ ggplot(covid %>%
 ```{r world2,fig.height=8}
 ######################
 tmp=group_by(covid,region,type,date) %>% 
-	filter(val>0,region!='China',date>='2020-03-01') %>%
+	filter(val>0,region!='China',date>='2020-02-25') %>%
 	summarize(val=sum(val)) %>%
 	group_by(region) %>%
 	filter(max(val)>=1)
@@ -181,7 +181,7 @@ ma<- filter(ma.orig,rn>7)
 lm<-with(ma,lm(val.log~rn))
 fit.int<-lm$coefficients[['(Intercept)']]
 fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(20)) %>% 
+fit<- tibble(rn=1:(21)) %>% 
 	mutate(fit=fit.s*rn+fit.int,
 				 val=exp(fit),
 				 date=as.Date("2020-03-02")+rn) %>%
@@ -293,7 +293,7 @@ ggplot()+
 
 ## Fatality Rates
 
-```
+Really hard to tell whether this analysis makes sense at all given the unreliablity of the data overall. FWIW:
 
 ```{r echo=FALSE}
 # fatility date
@@ -305,6 +305,7 @@ rate<-
 	inner_join(recovered %>%group_by(date,region) %>%	summarize(recovered=sum(val)),
 						 by = c("region", "date")) %>%
 	filter(region!='Cruise Ship' ) %>%
+	mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) %>%
 	filter(deaths>0) %>% 
 	mutate(rate=deaths/(deaths+confirmed)) %>%  ungroup %>% 
 	rowwise %>%
