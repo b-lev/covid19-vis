@@ -148,7 +148,7 @@ ggplot(tmp )+
 ######################
 ```
 
-# Focus on MA
+# Focus on MA, CA, and NY
 ```{r MA, fig.height=3,fig.width=4}
 # this is the data from JHU; see next line
 ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
@@ -165,14 +165,14 @@ ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-15"),by='1 day'
 
 # plot new cases per day
 
-ggplot(ma.orig%>% na.omit)+aes(date,delta)+
-	geom_bar(stat="identity")+
-	scale_y_continuous(breaks=pretty_breaks(5))+
-	scale_x_date(breaks=pretty_breaks(10))+
-	labs(y="new cases in MA per day")
+#ggplot(ma.orig%>% na.omit)+aes(date,delta)+
+#	geom_bar(stat="identity")+
+#	scale_y_continuous(breaks=pretty_breaks(5))+
+#	scale_x_date(breaks=pretty_breaks(10))+
+#	labs(y="new cases in MA per day")
 ```
 
-```{r MA-fit, fig.height=4,fig.width=4}
+```{r MA-fit, fig.height=3,fig.width=4}
 # Fit MA data to exponential 
 
 # adjust "rn>0" to fit to different parts of the data
@@ -188,15 +188,15 @@ fit<- tibble(rn=1:(20)) %>%
 	filter(val<=12000000)
 # 
 # Show fit to line on log-scake
-ggplot()+
-	geom_point(data=ma.orig,aes(rn,val.log))+
-	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
-	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
-	scale_x_continuous(breaks=pretty_breaks())+
-	scale_y_continuous(breaks=1:30,
-										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
-	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
-	labs(y="confirmed (log scale)",x="day")
+#ggplot()+
+#	geom_point(data=ma.orig,aes(rn,val.log))+
+#	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+#	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+#	scale_x_continuous(breaks=pretty_breaks())+
+#	scale_y_continuous(breaks=1:30,
+#										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
+#	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+#	labs(y="confirmed (log scale)",x="day")
 
 # Show plot and prediction 
 ggplot()+
@@ -211,8 +211,7 @@ ggplot()+
 
 ```
 
-# Focus on CA
-```{r CA, fig.height=4,fig.width=4}
+```{r CA, fig.height=3,fig.width=4}
 
 ca.jhu<-filter(US.by_state,state %in% c('California','CA'),val>=1,date>='2020-03-01') %>%
 	mutate(val.log=log(val)) %>%
@@ -230,15 +229,15 @@ fit<- tibble(rn=1:(22)) %>%
 	filter(val<=12000000)
 # 
 # Show fit to line on log-scake
-ggplot()+
-	geom_point(data=ca.jhu,aes(rn,val.log))+
-	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
-	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
-	scale_x_continuous(breaks=pretty_breaks())+
-	scale_y_continuous(breaks=1:20,
-										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
-	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
-	labs(y="confirmed (log scale)",x="day")
+#ggplot()+
+#	geom_point(data=ca.jhu,aes(rn,val.log))+
+#	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+#	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+#	scale_x_continuous(breaks=pretty_breaks())+
+#	scale_y_continuous(breaks=1:20,
+#										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
+#	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+#	labs(y="confirmed (log scale)",x="day")
 
 # Show plot and prediction 
 ggplot()+
@@ -250,7 +249,45 @@ ggplot()+
 	scale_x_date(breaks=pretty_breaks())+
 	theme(legend.position = c(.3,.8))+
 	labs(y="confirmed cases in CA",x="")
+```
 
+```{r NY, fig.height=3,fig.width=4}
+ny.jhu<-filter(US.by_state,state %in% c('New York','NY'),val>=1,date>'2020-03-07') %>%
+	mutate(val.log=log(val)) %>%
+	ungroup %>% 
+	mutate(rn=row_number())%>% 
+	filter(type=='confirmed')
+
+lm<-with(ny.jhu,lm(val.log~rn))
+fit.int<-lm$coefficients[['(Intercept)']]
+fit.s<- lm$coefficients[['rn']]
+fit<- tibble(rn=1:(16)) %>% 
+	mutate(fit=fit.s*rn+fit.int,
+				 val=exp(fit),
+				 date=as.Date("2020-03-07")+rn) %>%
+	filter(val<=12000000)
+# 
+# Show fit to line on log-scake
+#ggplot()+
+#	geom_point(data=ny.jhu,aes(rn,val.log))+
+#	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+#	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+#	scale_x_continuous(breaks=pretty_breaks())+
+#	scale_y_continuous(breaks=1:20,
+#										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
+#	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+#	labs(y="confirmed (log scale)",x="day")
+
+# Show plot and prediction 
+ggplot()+
+	geom_line(data=fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
+	geom_point(data=fit,aes(x=date,y=val,color='prediction'))	+
+	geom_point(data=ny.jhu,aes(date,val,color='actual'))+
+	scale_y_continuous(breaks=pretty_breaks(),label=comma,
+										 sec.axis = dup_axis())+
+	scale_x_date(breaks=pretty_breaks())+
+	theme(legend.position = c(.3,.8))+
+	labs(y="confirmed cases in NY",x="")
 
 ```
 
