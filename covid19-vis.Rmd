@@ -1,5 +1,10 @@
 ---
 title: "covid19"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: "B. Levine"
 date: "3/15/2020"
 output: html_document
@@ -7,6 +12,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F)
+
 ```
 
 ## COVID-19 JHU Visualizations
