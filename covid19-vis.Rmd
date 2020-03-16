@@ -1,28 +1,25 @@
 ---
-title: "covid19"
+title: "COVID-19 JHU Visualizations"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
-author: "B. Levine"
-date: "3/15/2020"
+author: "Thanks to JHU for data (https://github.com/CSSEGISandData/COVID-19)"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F)
-
+knitr::opts_chunk$set(echo = F,cache=F)
 ```
 
-## COVID-19 JHU Visualizations
 
 ```{r init, echo=FALSE, include=FALSE}
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(lubridate))
 suppressPackageStartupMessages(library(data.table))
-theme_set(theme_gray(14))
+theme_set(theme_gray(12))
 theme_update(legend.position='top')
 # read in JHU data
 # transpose the colums/rows
@@ -45,20 +42,250 @@ recovered<- read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/
 	rename('province'=`Province/State`,region=`Country/Region`)
 
 # bind all rows together
-covid<- bind_rows(confirmed,deaths,recovered)%>% filter(val>0)
+covid<- bind_rows(confirmed,deaths,recovered)%>% filter(val>0) %>%
+		mutate(region=ifelse(region=='Korea, South',"S.Korea",region))
+
+
+# cleanup: separate out city and state. 
+# Sometimes states are two-letter abbrev; sometimes full name. Make all two letters
+US<- filter(covid,region=='US') %>%
+	mutate(province=ifelse(str_count(province,",")>0,province,paste0(", ",province))) %>%
+	separate(province,c("city",'state'),sep=", ",remove=F,fill="right") %>%
+	mutate(state=ifelse(city=="",state.abb[match(state,state.name)],state))%>%
+	filter(!is.na(state))
+
+# Grab data fro each state, and ignore cruise ships
+US.by_state <- group_by(US,type,date,state)%>% 
+	summarize(val=sum(val)) %>%
+	filter(!(state  %in% c('CA (From Diamond Princess)','NE (From Diamond Princess)','TX (From Diamond Princess)')))%>%
+	group_by(type,state)%>% 
+	arrange(type,state,date) %>%
+	mutate(delta=val-lag(val)) 
+
+
+# this is the data from JHU; see next line
+ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
+	mutate(val.log=log(val)) %>%
+	ungroup %>% 
+	mutate(rn=row_number())
 ```
 
-## World data
-
-```{r pressure, echo=FALSE}
+### World data
+```{r world, echo=FALSE,fig.width = 5, fig.asp = .8}
 
 # All three lines for the world
-ggplot(covid %>% group_by(date,type) %>% summarize(val=sum(val)))+
+ggplot(covid %>% 
+			 	group_by(date,type) %>% 
+			 	summarize(val=sum(val)))+
 	aes(date,val,group=type,color=type)+
 	geom_line()+geom_point()+
-	scale_y_continuous(label=comma,breaks=pretty_breaks(10))+
-	scale_x_date(breaks=pretty_breaks(10))+
-	labs(x="")
+	scale_y_continuous(label=comma,breaks=pretty_breaks())+
+	theme(legend.position = c(.2,.8))+
+	scale_x_date(breaks=pretty_breaks())+
+	labs(x="",color=element_blank())
 ```
 
+
+### Country breakdown (without China)
+
+```{r world2,fig.height=8}
+######################
+tmp=group_by(covid,region,type,date) %>% 
+	filter(val>0,region!='China',date>='2020-03-01') %>%
+	summarize(val=sum(val)) %>%
+	group_by(region) %>%
+	filter(max(val)>=1)
+labels=group_by(tmp,region,type) %>% filter(date==max(date))  %>%
+	ungroup
+worst<- labels %>% group_by(region) %>% summarize(val=max(val)) %>% top_n(6,val) %>% pull(region)
+
+
+ggplot(tmp)+theme_gray(12)+
+	aes(date,val,group=c(region),color=region)+
+	scale_y_continuous(limits = c(NA,NA),
+										 # sec.axis = dup_axis()
+	)+
+	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
+	geom_line()+geom_point()+
+	# guides(color=guide_legend(ncol=1))+
+	theme(legend.position="none")+
+	facet_wrap(~type,scales = 'free',ncol=2)+
+	theme(legend.position="none",
+				axis.text.x = element_text(angle = 90, vjust = .5))+
+	labs(x="",y='count')+
+	geom_text(data=labels %>%	 
+							filter(	region %in% worst| region=='US'),
+						hjust=0,
+						aes(label=region,x=date+.5),color='black')
+######################
+```
+
+### US data
+```{r states, fig.height = 6, fig.width=8}
+tmp=group_by(US,state,type,date) %>% 
+	summarize(val=sum(val)) %>%
+	group_by(state) %>%
+	filter(date>'2020-02-23')
+labels=group_by(tmp,state,type) %>% filter(date==max(date))
+
+
+ggplot(tmp )+
+	aes(date,val,group=c(state),color=state)+
+	geom_text(data=labels,aes(label=state,x=date+1.2),color='black')+
+	scale_y_continuous(breaks=pretty_breaks(),
+										 limits = c(0,NA),
+										 # sec.axis = dup_axis()
+										 )+
+	scale_x_date(breaks=pretty_breaks(10),
+							 date_labels = "%b%d")+
+	geom_line()+geom_point()+
+	# guides(color=guide_legend(ncol=1))+
+	theme(legend.position="none",
+				axis.text.x = element_text(angle = 90, vjust = .5),
+				panel.spacing = unit(2, "lines"))+
+	facet_wrap(type~.,nrow=2,scales = 'free_y')+
+	labs(x="",y='count')
+######################
+```
+
+# Focus on MA
+```{r MA, fig.height=3,fig.width=3}
+# this is the data from JHU; see next line
+ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
+	mutate(val.log=log(val)) %>%
+	ungroup %>% 
+	mutate(rn=row_number())
+
+# data scrapped manually from mass.gov. very different than JHU
+# ".orig" because it's the orignal data; we are gonna mess with it
+ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-15"),by='1 day'),
+								val=c(1,2,7,8,13,28,41,88,95,108,123,138, 164)) %>%
+	mutate(date=as.Date(date),val.log=log(val),rn=row_number())%>% 
+	mutate(delta=val-lag(val))
+
+# plot new cases per day
+
+ggplot(ma.orig%>% na.omit)+aes(date,delta)+
+	geom_bar(stat="identity")+
+	scale_y_continuous(breaks=pretty_breaks())+
+	labs(y="new cases in MA per day")
+```
+
+```{r MA-fit, fig.height=4,fig.width=4}
+# Fit MA data to exponential 
+
+# adjust "rn>0" to fit to different parts of the data
+ma<- filter(ma.orig,rn>7)
+
+lm<-with(ma,lm(val.log~rn))
+fit.int<-lm$coefficients[['(Intercept)']]
+fit.s<- lm$coefficients[['rn']]
+fit<- tibble(rn=1:(20)) %>% 
+	mutate(fit=fit.s*rn+fit.int,
+				 val=exp(fit),
+				 date=as.Date("2020-03-02")+rn) %>%
+	filter(val<=12000000)
+# 
+# Show fit to line on log-scake
+ggplot()+
+	geom_point(data=ma.orig,aes(rn,val.log))+
+	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+	scale_x_continuous(breaks=pretty_breaks())+
+	scale_y_continuous(breaks=1:30,
+										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
+	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+	labs(y="confirmed (log scale)",x="day")
+
+# Show plot and prediction 
+ggplot()+
+	geom_line(data=fit,aes(x=date,y=val,color='fit'),linetype=2)	+
+	geom_point(data=fit,aes(x=date,y=val,color='fit'))	+
+	geom_point(data=ma.orig,aes(date,val,color='actual'))+
+	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
+										 sec.axis = dup_axis())+
+	scale_x_date(breaks=pretty_breaks())+
+	theme(legend.position = c(.2,.9))+
+	labs(y="confirmed cases in MA",x="")
+
+```
+
+# Focus on CA
+```{r CA, fig.height=4,fig.width=4}
+
+ca.jhu<-filter(US.by_state,state %in% c('California','CA'),val>=1,date>='2020-03-01') %>%
+	mutate(val.log=log(val)) %>%
+	ungroup %>% 
+	mutate(rn=row_number())%>% 
+	filter(type=='confirmed')
+
+lm<-with(ca.jhu,lm(val.log~rn))
+fit.int<-lm$coefficients[['(Intercept)']]
+fit.s<- lm$coefficients[['rn']]
+fit<- tibble(rn=1:(22)) %>% 
+	mutate(fit=fit.s*rn+fit.int,
+				 val=exp(fit),
+				 date=as.Date("2020-02-29")+rn) %>%
+	filter(val<=12000000)
+# 
+# Show fit to line on log-scake
+ggplot()+
+	geom_point(data=ca.jhu,aes(rn,val.log))+
+	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+	scale_x_continuous(breaks=pretty_breaks())+
+	scale_y_continuous(breaks=1:20,
+										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
+	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+	labs(y="confirmed (log scale)",x="day")
+
+# Show plot and prediction 
+ggplot()+
+	geom_line(data=fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
+	geom_point(data=fit,aes(x=date,y=val,color='prediction'))	+
+	geom_point(data=ca.jhu,aes(date,val,color='actual'))+
+	scale_y_continuous(breaks=pretty_breaks(),label=comma,
+										 sec.axis = dup_axis())+
+	scale_x_date(breaks=pretty_breaks())+
+	theme(legend.position = c(.3,.8))+
+	labs(y="confirmed cases in CA",x="")
+
+
+```
+
+## Fatality Rates
+
+```
+
+```{r echo=FALSE}
+# fatility date
+# sepaate out china
+rate<- 
+	inner_join(confirmed %>% group_by(date,region) %>% summarize(confirmed=sum(val)),
+						 deaths %>%group_by(date,region) %>% summarize(deaths=sum(val)),
+						 by = c("region", "date")) %>%
+	inner_join(recovered %>%group_by(date,region) %>%	summarize(recovered=sum(val)),
+						 by = c("region", "date")) %>%
+	filter(region!='Cruise Ship' ) %>%
+	filter(deaths>0) %>% 
+	mutate(rate=deaths/(deaths+confirmed)) %>%  ungroup %>% 
+	rowwise %>%
+	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed))) %>%  ungroup %>% 
+	group_by(region) %>% mutate(min_ci=min(ci)) %>%
+	rowwise %>% 
+	filter(date>'2020-02-18',min_ci<0.005,ci<.01 | (region=='US' & ci<.02))
+labels=rate %>% ungroup %>% group_by(region) %>% filter(date==max(date))
+
+ggplot(rate)+
+	aes(date,rate,group=region,color=region)+
+	geom_line()+geom_point()+
+	#geom_errorbar(aes(ymax=rate+ci,ymin=rate-ci))+ 
+	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
+	scale_x_date(breaks=pretty_breaks(),
+							 limits = c(min(rate$date),max(rate$date)+8))+
+	labs(y='fatality rate',x="")+
+	theme(legend.position='none')+
+	geom_text(data=labels,aes(label=region,x=date+2),hjust=0,color='black')
+
+```
 
