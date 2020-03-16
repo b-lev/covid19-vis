@@ -83,7 +83,6 @@ ggplot(covid %>%
 	aes(date,val,group=type,color=type)+
 	geom_line()+geom_point()+
 	scale_y_continuous(label=comma,breaks=pretty_breaks(),
-										 
 										 sec.axis = sec_axis(~./7771316390,labels = percent))+
 	theme(legend.position = c(.2,.8))+
 	scale_x_date(breaks=pretty_breaks())+
@@ -102,7 +101,12 @@ tmp=group_by(covid,region,type,date) %>%
 	filter(max(val)>=1)
 labels=group_by(tmp,region,type) %>% filter(date==max(date))  %>%
 	ungroup
-worst<- labels %>% group_by(region) %>% summarize(val=max(val)) %>% top_n(6,val) %>% pull(region)
+
+worst<- labels %>% 
+	group_by(region) %>% 
+	summarize(val=max(val)) %>% 
+	top_n(6,val) %>% 
+	pull(region)
 
 
 ggplot(tmp)+theme_gray(12)+
@@ -164,8 +168,8 @@ ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
 
 # data scrapped manually from mass.gov. very different than JHU
 # ".orig" because it's the orignal data; we are gonna mess with it
-ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-15"),by='1 day'),
-								val=c(1,2,7,8,13,28,41,88,95,108,123,138, 164)) %>%
+ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-16"),by='1 day'),
+								val=c(1,2,7,8,13,28,41,88,95,108,123,138, 164,197)) %>%
 	mutate(date=as.Date(date),val.log=log(val),rn=row_number())%>% 
 	mutate(delta=val-lag(val))
 
