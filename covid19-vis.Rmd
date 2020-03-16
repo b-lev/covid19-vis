@@ -10,14 +10,17 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=T)
+knitr::opts_chunk$set(echo = F,cache=F)
 ```
+Based on JHU data. Results are only as good as the data, which is only as good as the amount of testing done. 
 
+(Source code: https://github.com/b-lev/covid19-vis)
 
 ```{r init, echo=FALSE, include=FALSE}
 suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(lubridate))
+suppressPackageStartupMessages(library(ggrepel))
 suppressPackageStartupMessages(library(data.table))
 theme_set(theme_gray(12))
 theme_update(legend.position='top')
@@ -79,7 +82,9 @@ ggplot(covid %>%
 			 	summarize(val=sum(val)))+
 	aes(date,val,group=type,color=type)+
 	geom_line()+geom_point()+
-	scale_y_continuous(label=comma,breaks=pretty_breaks())+
+	scale_y_continuous(label=comma,breaks=pretty_breaks(),
+										 
+										 sec.axis = sec_axis(~./7771316390,labels = percent))+
 	theme(legend.position = c(.2,.8))+
 	scale_x_date(breaks=pretty_breaks())+
 	labs(x="",y="",color=element_blank())
@@ -113,10 +118,11 @@ ggplot(tmp)+theme_gray(12)+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5))+
 	labs(x="",y='count')+
-	geom_text(data=labels %>%	 
+	geom_text_repel(data=labels %>%	
 							filter(	region %in% worst| region=='US'),
+							 direction='y',segment.color='dark grey',
 						hjust=0,
-						aes(label=region,x=date+.5),color='black')
+						aes(label=region,x=date+.2),color='black')
 ######################
 ```
 
@@ -248,7 +254,7 @@ ggplot()+
 										 sec.axis = dup_axis())+
 	scale_x_date(breaks=pretty_breaks())+
 	theme(legend.position = c(.3,.8))+
-	labs(y="confirmed cases in CA",x="")
+	labs(y="confirmed cases in CA",x="",color=element_blank())
 ```
 
 ```{r NY, fig.height=3,fig.width=4}
@@ -287,7 +293,7 @@ ggplot()+
 										 sec.axis = dup_axis())+
 	scale_x_date(breaks=pretty_breaks())+
 	theme(legend.position = c(.3,.8))+
-	labs(y="confirmed cases in NY",x="")
+	labs(y="confirmed cases in NY",x="",color=element_blank())
 
 ```
 
@@ -317,14 +323,17 @@ labels=rate %>% ungroup %>% group_by(region) %>% filter(date==max(date))
 
 ggplot(rate)+
 	aes(date,rate,group=region,color=region)+
+	geom_text_repel(data=labels,segment.color='dark grey',
+									direction='y',
+						aes(label=region,x=date+.5),					
+						hjust=0,color='black')+
 	geom_line()+geom_point()+
 	#geom_errorbar(aes(ymax=rate+ci,ymin=rate-ci))+ 
 	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
 	scale_x_date(breaks=pretty_breaks(),
 							 limits = c(min(rate$date),max(rate$date)+8))+
 	labs(y='fatality rate',x="")+
-	theme(legend.position='none')+
-	geom_text(data=labels,aes(label=region,x=date+2),hjust=0,color='black')
+	theme(legend.position='none')
 
 ```
 
