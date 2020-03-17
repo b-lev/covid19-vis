@@ -168,8 +168,8 @@ ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
 
 # data scrapped manually from mass.gov. very different than JHU
 # ".orig" because it's the orignal data; we are gonna mess with it
-ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-16"),by='1 day'),
-								val=c(1,2,7,8,13,28,41,88,95,108,123,138, 164,197)) %>%
+ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-17"),by='1 day'),
+								val=c(1,2,7,8,13,28,41,88,95,108,123,138, 164,197,218)) %>%
 	mutate(date=as.Date(date),val.log=log(val),rn=row_number())%>% 
 	mutate(delta=val-lag(val))
 
