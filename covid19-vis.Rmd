@@ -341,3 +341,26 @@ ggplot(rate)+
 
 ```
 
+Growth from 400 cases 
+
+```{r comaprison}
+
+compare<- filter(covid,type %in% c('confirmed'))  %>%
+	group_by(region,date,type) %>%
+	summarize(val=sum(val)) %>%
+	filter(val>=300) %>%
+	group_by(region,type) %>%
+	mutate(day=row_number())%>%
+	filter( region%in% c('Italy','US','S.Korea')) %>%
+	mutate(pop=ifelse(region=='Italy',  60462000,ifelse(region=='US',  331003000,ifelse(region=='S.Korea',  51269000))))
+
+labels<- compare %>% group_by(region) %>% filter(day==max(day)) %>%
+	mutate(day=max(day,day)) 
+
+ggplot(compare)+
+	aes(day,val,group=c(region),color=region)+
+	theme(legend.position = "none")+
+	geom_line()+geom_point()+
+	geom_text_repel(data=labels,aes(label=region),color='black',direction='y')+
+	labs(y='confirmed cases')
+```
