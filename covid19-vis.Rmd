@@ -77,7 +77,7 @@ ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
 ```
 
 ### World data
-```{r world, echo=FALSE,fig.width = 5, fig.asp = .8}
+```{r world, echo=FALSE,fig.width = 5,fig.height=3}
 
 # All three lines for the world
 ggplot(covid %>% 
@@ -89,7 +89,7 @@ ggplot(covid %>%
 										 sec.axis = sec_axis(~./7771316390,labels = percent))+
 	theme(legend.position = c(.2,.8))+
 	scale_x_date(breaks=pretty_breaks())+
-	labs(x="",y="",color=element_blank())
+	labs(x=element_blank(),y=element_blank(),color=element_blank())
 ```
 
 
@@ -129,6 +129,35 @@ ggplot(tmp)+theme_gray(12)+
 						aes(label=region,x=date+.2),color='black')
 ######################
 ```
+
+
+Comparative Growth from ~300 cases 
+
+```{r comaprison, fig.width=6,fig.height=5}
+
+compare<- filter(covid,type %in% c('confirmed'))  %>%
+	group_by(region,date,type) %>%
+	summarize(val=sum(val)) %>%
+	filter(val>=300) %>%
+	group_by(region,type) %>%
+	mutate(day=row_number())%>%
+	filter( region%in% c('Italy','US','S.Korea')) %>%
+	mutate(pop=ifelse(region=='Italy',  60462000,
+										ifelse(region=='US',  331003000,
+													 ifelse(region=='S.Korea',  51269000))))
+
+labels<- compare %>% group_by(region) %>% filter(day==max(day)) %>%
+	mutate(day=max(day,day)) 
+
+ggplot(compare)+
+	aes(day,val,group=c(region),color=region)+
+	theme(legend.position = "none")+
+	geom_line()+geom_point()+
+	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
+	scale_y_continuous(breaks=pretty_breaks(10))+
+	labs(y='confirmed cases')
+```
+
 
 ### US data
 ```{r states, fig.height = 6, fig.width=8}
@@ -340,34 +369,29 @@ ggplot(rate)+
 
 ```
 
-Comparative Growth from ~300 cases 
+## Massachusetts Data
 
-```{r comaprison}
 
-compare<- filter(covid,type %in% c('confirmed'))  %>%
-	group_by(region,date,type) %>%
-	summarize(val=sum(val)) %>%
-	filter(val>=300) %>%
-	group_by(region,type) %>%
-	mutate(day=row_number())%>%
-	filter( region%in% c('Italy','US','S.Korea')) %>%
-	mutate(pop=ifelse(region=='Italy',  60462000,
-										ifelse(region=='US',  331003000,
-													 ifelse(region=='S.Korea',  51269000))))
+The cumulative fraction of MA covid patients that are hospitalized.
 
-labels<- compare %>% group_by(region) %>% filter(day==max(day)) %>%
-	mutate(day=max(day,day)) 
+```{r ma-hosp,fig.height=3,fig.width=5}
+ma.hosp<-ma.gov %>% select(date,Hospitalized_yes,Hospitalized_no) %>%
+	na.omit %>%
+	mutate(hosp_frac=Hospitalized_yes/(Hospitalized_yes+Hospitalized_no))
 
-ggplot(compare)+
-	aes(day,val,group=c(region),color=region)+
-	theme(legend.position = "none")+
-	geom_line()+geom_point()+
-	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
-	scale_y_continuous(breaks=pretty_breaks(10))+
-	labs(y='confirmed cases')
+ggplot(ma.hosp)+aes(date,hosp_frac)+
+	geom_point()+geom_line()+
+	scale_y_continuous(label=percent,limits=c(0,NA),
+										 breaks=pretty_breaks(10))+
+	labs(y="hospitalization in MA",
+			 x=element_blank())
+	
+
 ```
 
-```{r}
+MA is performing just 300 tests per day, and earlier 200 per day. This plots the number of tests per day; just one day of data so far...
+
+```{r ma-testing, fig.height=3,fig.width=5}
 ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
 									 Lab_MA_PHL_neg,Lab_LabCorp_pos,
 									 Lab_LabCorp_neg,Lab_Quest_pos,
@@ -384,20 +408,10 @@ ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
 ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 	geom_bar(stat='identity',position = 'stack',width=1)+
 	labs(y="Tests in MA per day")
-
-ma.hosp<-ma.gov %>% select(date,Hospitalized_yes,Hospitalized_no) %>%
-	na.omit %>%
-	mutate(hosp_frac=Hospitalized_yes/(Hospitalized_yes+Hospitalized_no))
-
-ggplot(ma.hosp)+aes(date,hosp_frac)+
-	geom_point()+geom_line()+
-	scale_y_continuous(label=percent,limits=c(0,NA),
-										 breaks=pretty_breaks(10))+
-	labs(y="Fraction of MA patients that are hospitalized\n(cumulative)",
-			 x=element_blank())
-	
-
 ```
+
+
+## Testing in US
 
 Testing in each state. Based on https://covidtracking.com/api/states/daily.csv.
 Assumes one test per person.
