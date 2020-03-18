@@ -6,11 +6,14 @@ knit: (function(input_file, encoding) {
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: "Thanks to JHU for data (https://github.com/CSSEGISandData/COVID-19)"
-output: html_document
+output:
+  rmarkdown::html_document:
+    theme: cosmo
 ---
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=F)
+knitr::opts_chunk$set(echo = F,cache=T)
 ```
 Based on JHU data. Results are only as good as the data, which is only as good as the amount of testing done. 
 
@@ -132,20 +135,22 @@ ggplot(tmp)+theme_gray(12)+
 
 ### US data
 ```{r states, fig.height = 6, fig.width=8}
-tmp=group_by(US,state,type,date) %>% 
+
+tmp<-group_by(US,state,type,date) %>% 
 	summarize(val=sum(val)) %>%
 	group_by(state) %>%
 	filter(date>'2020-02-23')
-labels=group_by(tmp,state,type) %>% filter(date==max(date))
+labels<- group_by(tmp,type) %>% 
+	filter(date==max(date)) %>%
+	top_n(5,val)
 
 
 ggplot(tmp )+
 	aes(date,val,group=c(state),color=state)+
-	geom_text(data=labels,aes(label=state,x=date+1.2),color='black')+
 	scale_y_continuous(breaks=pretty_breaks(),
 										 limits = c(0,NA),
 										 # sec.axis = dup_axis()
-										 )+
+	)+
 	scale_x_date(breaks=pretty_breaks(10),
 							 date_labels = "%b%d")+
 	geom_line()+geom_point()+
@@ -153,13 +158,17 @@ ggplot(tmp )+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5),
 				panel.spacing = unit(2, "lines"))+
+	geom_text_repel(data=labels,
+									direction = 'x',
+									aes(label=state,x=date+2),
+									color='black')+
 	facet_wrap(type~.,nrow=2,scales = 'free_y')+
 	labs(x="",y='')
 ######################
 ```
 
-# Focus on MA, CA, and NY
-```{r MA, fig.height=3,fig.width=4}
+# Predictions for MA, CA, and NY
+```{r MA,fig.height=3,fig.width=5}
 # this is the data from JHU; see next line
 ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
 	mutate(val.log=log(val)) %>%
@@ -167,52 +176,48 @@ ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
 	mutate(rn=row_number())
 
 # data scrapped manually from mass.gov. very different than JHU
-# ".orig" because it's the orignal data; we are gonna mess with it
-ma.orig<-tibble(date=seq(as.Date("2020-03-03") ,as.Date("2020-03-17"),by='1 day'),
-								val=c(1,2,7,8,13,28,41,88,95,108,123,138, 164,197,218)) %>%
-	mutate(date=as.Date(date),val.log=log(val),rn=row_number())%>% 
+ma.gov<-suppressMessages(read_csv('MA-stats.csv'))%>%
+	mutate(date=mdy(date),
+				 val=confirmed+presumptive,
+				 val.log=log(val),
+				 rn=row_number()-2)%>% 
 	mutate(delta=val-lag(val))
 
 # plot new cases per day
+# ggplot(ma.gov %>% select(date,val,delta) %>%na.omit)+
+# 	aes(date,delta)+
+# 	geom_bar(stat="identity")+
+# 	scale_y_continuous(breaks=pretty_breaks(10))+
+# 	labs(y="new cases in MA per day")
 
-#ggplot(ma.orig%>% na.omit)+aes(date,delta)+
-#	geom_bar(stat="identity")+
-#	scale_y_continuous(breaks=pretty_breaks(5))+
-#	scale_x_date(breaks=pretty_breaks(10))+
-#	labs(y="new cases in MA per day")
-```
-
-```{r MA-fit, fig.height=3,fig.width=4}
 # Fit MA data to exponential 
 
 # adjust "rn>0" to fit to different parts of the data
-ma<- filter(ma.orig,rn>7)
+ma<-select(ma.gov ,date,val,val.log,rn) %>%filter(rn>=10)
 
 lm<-with(ma,lm(val.log~rn))
 fit.int<-lm$coefficients[['(Intercept)']]
 fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(21)) %>% 
+fit<- tibble(rn=1:(20)) %>% 
 	mutate(fit=fit.s*rn+fit.int,
 				 val=exp(fit),
-				 date=as.Date("2020-03-02")+rn) %>%
-	filter(val<=12000000)
+				 date=as.Date("2020-03-02")+rn) 
+
 # 
 # Show fit to line on log-scake
-#ggplot()+
-#	geom_point(data=ma.orig,aes(rn,val.log))+
-#	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
-#	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
-#	scale_x_continuous(breaks=pretty_breaks())+
-#	scale_y_continuous(breaks=1:30,
-#										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
-#	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
-#	labs(y="confirmed (log scale)",x="day")
+# ggplot()+
+# 	geom_point(data=ma.gov ,aes(rn,val.log))+
+# 	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+# 	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+# 	scale_x_continuous(breaks=pretty_breaks())+
+# 	scale_y_continuous(breaks=1:30)+
+# 	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+# 	labs(y="confirmed (log scale)",x="day")
 
-# Show plot and prediction 
 ggplot()+
 	geom_line(data=fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
 	geom_point(data=fit,aes(x=date,y=val,color='prediction'))	+
-	geom_point(data=ma.orig,aes(date,val,color='actual'))+
+	geom_point(data=ma.gov %>% filter(date>='2020-03-01'),aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
 	scale_x_date(breaks=pretty_breaks())+
@@ -221,7 +226,7 @@ ggplot()+
 
 ```
 
-```{r CA, fig.height=3,fig.width=4}
+```{r CA, fig.height=3,fig.width=5}
 
 ca.jhu<-filter(US.by_state,state %in% c('California','CA'),val>=1,date>='2020-03-01') %>%
 	mutate(val.log=log(val)) %>%
@@ -261,7 +266,7 @@ ggplot()+
 	labs(y="confirmed cases in CA",x="",color=element_blank())
 ```
 
-```{r NY, fig.height=3,fig.width=4}
+```{r NY, fig.height=3,fig.width=5}
 ny.jhu<-filter(US.by_state,state %in% c('New York','NY'),val>=1,date>'2020-03-07') %>%
 	mutate(val.log=log(val)) %>%
 	ungroup %>% 
@@ -305,7 +310,7 @@ ggplot()+
 
 Really hard to tell whether this analysis makes sense at all given the unreliablity of the data overall. FWIW:
 
-```{r echo=FALSE}
+```{r fatality, echo=FALSE}
 # fatility date
 # sepaate out china
 rate<- 
@@ -341,7 +346,7 @@ ggplot(rate)+
 
 ```
 
-Growth from 400 cases 
+Comparative Growth from ~300 cases 
 
 ```{r comaprison}
 
@@ -352,7 +357,9 @@ compare<- filter(covid,type %in% c('confirmed'))  %>%
 	group_by(region,type) %>%
 	mutate(day=row_number())%>%
 	filter( region%in% c('Italy','US','S.Korea')) %>%
-	mutate(pop=ifelse(region=='Italy',  60462000,ifelse(region=='US',  331003000,ifelse(region=='S.Korea',  51269000))))
+	mutate(pop=ifelse(region=='Italy',  60462000,
+										ifelse(region=='US',  331003000,
+													 ifelse(region=='S.Korea',  51269000))))
 
 labels<- compare %>% group_by(region) %>% filter(day==max(day)) %>%
 	mutate(day=max(day,day)) 
@@ -361,6 +368,10 @@ ggplot(compare)+
 	aes(day,val,group=c(region),color=region)+
 	theme(legend.position = "none")+
 	geom_line()+geom_point()+
-	geom_text_repel(data=labels,aes(label=region),color='black',direction='y')+
+	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
 	labs(y='confirmed cases')
+```
+
+```{r}
+# read_csv('MA-stats.csv')
 ```
