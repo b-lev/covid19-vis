@@ -131,11 +131,11 @@ ggplot(tmp)+theme_gray(12)+
 ```
 
 
-Comparative Growth from ~300 cases 
+Comparative Growth from ~300 cases (left) and 0.001% of the population (right)
 
-```{r comaprison, fig.width=6,fig.height=5}
+```{r comaprison, fig.width=4,fig.height=3}
 
-compare<- filter(covid,type %in% c('confirmed'))  %>%
+comparison<- filter(covid,type %in% c('confirmed'))  %>%
 	group_by(region,date,type) %>%
 	summarize(val=sum(val)) %>%
 	filter(val>=300) %>%
@@ -146,16 +146,28 @@ compare<- filter(covid,type %in% c('confirmed'))  %>%
 										ifelse(region=='US',  331003000,
 													 ifelse(region=='S.Korea',  51269000))))
 
-labels<- compare %>% group_by(region) %>% filter(day==max(day)) %>%
-	mutate(day=max(day,day)) 
+labels<- comparison %>% group_by(region) %>% filter(day==max(day)) %>%
+	mutate(day=max(day,day),valpc=val/pop) 
 
-ggplot(compare)+
+ggplot(comparison)+
 	aes(day,val,group=c(region),color=region)+
 	theme(legend.position = "none")+
 	geom_line()+geom_point()+
 	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
 	scale_y_continuous(breaks=pretty_breaks(10))+
 	labs(y='confirmed cases')
+
+comp2<-comparison %>% filter(val/pop>0.00001) %>%
+	group_by(region) %>%
+	mutate(day=row_number(),valpc=val/pop)
+
+ggplot(comp2)+
+	aes(x=day,y=valpc,group=c(region),color=region)+
+	theme(legend.position = "none")+
+	geom_line()+geom_point()+
+	# geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
+	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
+	labs(y='confirmed cases per capita')
 ```
 
 
