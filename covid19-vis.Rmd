@@ -9,6 +9,7 @@ author: "Thanks to JHU for data (https://github.com/CSSEGISandData/COVID-19)"
 output:
   rmarkdown::html_document:
     theme: cosmo
+date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 ---
 
 
@@ -401,7 +402,7 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 
 ```
 
-MA is performing just 300 tests per day, and earlier 200 per day. This plots the number of tests per day; just one day of data so far...
+MA is performing just 300 tests per day, and earlier 200 per day. This plots the number of tests per day; data comes in only once a day...
 
 ```{r ma-testing, fig.height=3,fig.width=5}
 ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
@@ -419,6 +420,7 @@ ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
 
 ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 	geom_bar(stat='identity',position = 'stack',width=1)+
+	scale_y_continuous(breaks=pretty_breaks())+
 	labs(y="Tests in MA per day")
 ```
 
