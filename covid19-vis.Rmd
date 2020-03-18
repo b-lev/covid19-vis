@@ -382,6 +382,57 @@ ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
 	na.omit
 
 ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
-	geom_bar(stat='identity',position = 'stack')+
+	geom_bar(stat='identity',position = 'stack',width=1)+
 	labs(y="Tests in MA per day")
+
+ma.hosp<-ma.gov %>% select(date,Hospitalized_yes,Hospitalized_no) %>%
+	na.omit %>%
+	mutate(hosp_frac=Hospitalized_yes/(Hospitalized_yes+Hospitalized_no))
+
+ggplot(ma.hosp)+aes(date,hosp_frac)+
+	geom_point()+geom_line()+
+	scale_y_continuous(label=percent,limits=c(0,NA),
+										 breaks=pretty_breaks(10))+
+	labs(y="Fraction of MA patients that are hospitalized\n(cumulative)",
+			 x=element_blank())
+	
+
+```
+
+Testing in each state. Based on https://covidtracking.com/api/states/daily.csv.
+Assumes one test per person.
+```{r testing2}
+ct<- 
+	suppressMessages(read_csv('https://covidtracking.com/api/states/daily.csv'))  %>%
+	group_by(state) %>% arrange(state,date) %>%
+	mutate(date=ymd(date)) %>%
+	mutate(total=positive+negative) %>%
+	select(-c(dateChecked))
+
+state.pops<-suppressMessages(read_csv('state-pop-census.csv')) %>%
+	mutate(state=state.abb[match(state_name,state.name)]) %>%
+	mutate(state=ifelse(state_name=="DC","DC",state)) %>%
+	select(state,pop)
+
+testing<-ct %>% group_by(state) %>% arrange(state,date) %>%
+	mutate(delta=total-lag(total,1)) %>% 
+	inner_join(state.pops,by='state')	%>% ungroup %>%
+	mutate(total_per_cap=total/pop)
+
+
+## tests per capita
+labels=filter(testing,date==max(date)) %>% ungroup %>%
+	top_n(n=15,wt=total_per_cap)
+
+ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
+	aes(date,total_per_cap,group=state,color=state)+
+	geom_line()+
+	theme(legend.position = 'none')+
+	geom_label_repel(data=labels,aes(label=state,x=date+8),
+									 nudge_x=1,
+									 direction='x')+
+	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
+	labs(y="Cumulative perc. of state population tested",x="")
+
+
 ```
