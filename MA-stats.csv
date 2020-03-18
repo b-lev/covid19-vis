@@ -1,4 +1,4 @@
-﻿date,confirmed,presumptive,Barnstable,Berkshire,Bristol,Essex,Hampden,Middlesex,Norfolk,Plymouth,Suffolk,Worcester,Unkown,Female,Male,Ex:Biogen,Ex:Travel_related,Ex:local,Ex:Under_investigation,Hospitalized_yes,Hospitalized_no,Hospitalized_under_investigation,Lab:MA_PHL_pos,Lab:MA_PHL_neg,Lab:LabCorp_pos,Lab:LabCorp_neg,Lab:Quest_pos,Lab:Quest_neg
+﻿date,confirmed,presumptive,Barnstable,Berkshire,Bristol,Essex,Hampden,Middlesex,Norfolk,Plymouth,Suffolk,Worcester,Unkown,Female,Male,Ex_Biogen,Ex_Travel_related,Ex_Local,Ex_Under_investigation,Hospitalized_yes,Hospitalized_no,Hospitalized_under_investigation,Lab_MA_PHL_pos,Lab_MA_PHL_neg,Lab_LabCorp_pos,Lab_LabCorp_neg,Lab_Quest_pos,Lab_Quest_neg
 2/1/20,1,0,,,,,,,,,,,,,,,,,,,,,,,,,,
 3/2/20,2,0,,,,,,,,,,,,,,,,,,,,,,,,,,
 3/3/20,2,0,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -15,4 +15,4 @@
 3/14/20,19,119,1,9,1,5,0,65,28,0,27,2,0,64,74,104,5,8,21,11,105,22,0,0,0,0,0,0
 3/15/20,45,119,1,9,1,6,1,75,31,1,31,6,2,74,90,108,13,8,35,13,115,36,0,0,0,0,0,0
 3/16/20,0,197,1,11,2,8,1,83,36,3,36,6,10,93,104,100,18,28,51,14,123,60,181,1092,1,48,7,156
-3/17/20,0,218,2,14,5,8,1,89,43,5,42,8,1,102,116,102,24,33,59,21,145,52,197,1367,1,,12,
+3/17/20,0,218,2,14,5,8,1,89,43,5,42,8,1,102,116,102,24,33,59,21,145,52,197,1367,1,48,12,156

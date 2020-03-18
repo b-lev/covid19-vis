@@ -13,7 +13,7 @@ output:
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=T)
+knitr::opts_chunk$set(echo = F,cache=F)
 ```
 Based on JHU data. Results are only as good as the data, which is only as good as the amount of testing done. 
 
@@ -94,9 +94,7 @@ ggplot(covid %>%
 
 
 ### Country breakdown (without China)
-
-```{r world2,fig.height=8}
-######################
+```{r country,fig.height=8}
 tmp=group_by(covid,region,type,date) %>% 
 	filter(val>0,region!='China',date>='2020-02-25') %>%
 	summarize(val=sum(val)) %>%
@@ -115,11 +113,10 @@ worst<- labels %>%
 ggplot(tmp)+theme_gray(12)+
 	aes(date,val,group=c(region),color=region)+
 	scale_y_continuous(limits = c(NA,NA),
-										 # sec.axis = dup_axis()
+										 breaks=pretty_breaks(10)
 	)+
 	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
 	geom_line()+geom_point()+
-	# guides(color=guide_legend(ncol=1))+
 	theme(legend.position="none")+
 	facet_wrap(~type,scales = 'free',ncol=2)+
 	theme(legend.position="none",
@@ -147,20 +144,17 @@ labels<- group_by(tmp,type) %>%
 
 ggplot(tmp )+
 	aes(date,val,group=c(state),color=state)+
-	scale_y_continuous(breaks=pretty_breaks(),
-										 limits = c(0,NA),
-										 # sec.axis = dup_axis()
+	scale_y_continuous(breaks=pretty_breaks(8), limits = c(0,NA),
 	)+
 	scale_x_date(breaks=pretty_breaks(10),
 							 date_labels = "%b%d")+
 	geom_line()+geom_point()+
-	# guides(color=guide_legend(ncol=1))+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5),
 				panel.spacing = unit(2, "lines"))+
 	geom_text_repel(data=labels,
 									direction = 'x',
-									aes(label=state,x=date+2),
+									aes(label=state,x=date+3),
 									color='black')+
 	facet_wrap(type~.,nrow=2,scales = 'free_y')+
 	labs(x="",y='')
@@ -369,9 +363,25 @@ ggplot(compare)+
 	theme(legend.position = "none")+
 	geom_line()+geom_point()+
 	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
+	scale_y_continuous(breaks=pretty_breaks(10))+
 	labs(y='confirmed cases')
 ```
 
 ```{r}
-# read_csv('MA-stats.csv')
+ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
+									 Lab_MA_PHL_neg,Lab_LabCorp_pos,
+									 Lab_LabCorp_neg,Lab_Quest_pos,
+									 Lab_Quest_neg) %>%
+	gather(var,val,-date) %>% 
+	na.omit %>%
+	mutate(result=ifelse(str_ends(var,"_pos"),"pos","neg")) %>%
+	group_by(result,date) %>%
+	summarize(val=sum(val)) %>%
+	filter(val>0) %>%
+	mutate(delta=val-lag(val)) %>%
+	na.omit
+
+ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
+	geom_bar(stat='identity',position = 'stack')+
+	labs(y="Tests in MA per day")
 ```
