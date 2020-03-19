@@ -133,7 +133,7 @@ ggplot(tmp)+theme_gray(12)+
 ```
 
 
-Comparative Growth from ~300 cases (left) and 0.001% of the population (right)
+Comparative Growth with day 1 equal to approx 300 cases 
 
 ```{r comaprison, fig.width=4,fig.height=3}
 
@@ -150,6 +150,12 @@ comparison<- filter(covid,type %in% c('confirmed'))  %>%
 
 labels<- comparison %>% group_by(region) %>% filter(day==max(day)) %>%
 	mutate(day=max(day,day),valpc=val/pop) 
+```
+
+
+Comparative Growth when day 1 is approx 0.001% of the population.
+
+```{r comp-per-cap, fig.width=4,fig.height=3}
 
 ggplot(comparison)+
 	aes(day,val,group=c(region),color=region)+
@@ -426,11 +432,13 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 ```
 
 
-# US Testing rates
+# US Testing Statistics
 
 Testing in each state. Based on https://covidtracking.com/api/states/daily.csv.
-Assumes one test per person.
-```{r testing2}
+
+
+```{r testing, fig.height=7}
+
 ct<- 
 	suppressMessages(read_csv('https://covidtracking.com/api/states/daily.csv'))  %>%
 	group_by(state) %>% arrange(state,date) %>%
@@ -448,6 +456,22 @@ testing<-ct %>% group_by(state) %>% arrange(state,date) %>%
 	inner_join(state.pops,by='state')	%>% ungroup %>%
 	mutate(total_per_cap=total/pop)
 
+
+tmp<- filter(testing,date==max(date))  %>%
+	mutate(rate=positive/(positive+negative))
+tmp<- mutate(tmp,	 st.f=factor(state,levels =tmp$state[order(tmp$rate)]))
+
+ggplot(tmp)+
+	aes(y=st.f,x=rate)+
+	geom_bar(stat='identity')+
+	scale_x_continuous(label=percent)+
+	geom_text(aes(label=positive+negative,x=round(rate+.15,1)),hjust=1)+
+	labs(x='COVID testing positive rate  (total tests)',y="State")
+```
+
+Below plot assumes one test per person.
+
+```{r testing2}
 
 ## tests per capita
 labels=filter(testing,date==max(date)) %>% ungroup %>%
