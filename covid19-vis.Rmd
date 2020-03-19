@@ -9,6 +9,7 @@ author: "Thanks to JHU for data (https://github.com/CSSEGISandData/COVID-19)"
 output:
   rmarkdown::html_document:
     theme: cosmo
+    toc: true
 date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 ---
 
@@ -342,7 +343,7 @@ ggplot()+
 
 ```
 
-## Fatality Rates
+# World Fatality Rates
 
 Really hard to tell whether this analysis makes sense at all given the unreliablity of the data overall. FWIW:
 
@@ -382,7 +383,7 @@ ggplot(rate)+
 
 ```
 
-## Massachusetts Data
+# Massachusetts-specific Data
 
 
 The cumulative fraction of MA covid patients that are hospitalized.
@@ -425,7 +426,7 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 ```
 
 
-## Testing in US
+# US Testing rates
 
 Testing in each state. Based on https://covidtracking.com/api/states/daily.csv.
 Assumes one test per person.
