@@ -5,7 +5,7 @@ knit: (function(input_file, encoding) {
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
-author: "Thanks to JHU for data (https://github.com/CSSEGISandData/COVID-19)"
+author: ""
 output:
   rmarkdown::html_document:
     theme: cosmo
@@ -16,8 +16,9 @@ date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = F,cache=F)
+
 ```
-Based on JHU data. Results are only as good as the data, which is only as good as the amount of testing done. 
+Thanks to JHU for the data used here (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
 
 (Source code: https://github.com/b-lev/covid19-vis)
 
@@ -205,7 +206,7 @@ ggplot(tmp )+
 									direction = 'x',
 									aes(label=state,x=date+3),
 									color='black')+
-	facet_wrap(type~.,nrow=2,scales = 'free_y')+
+	facet_wrap(type~.,nrow=2,scales = 'free')+
 	labs(x="",y='')
 ######################
 ```
@@ -263,7 +264,7 @@ ggplot()+
 	geom_point(data=ma.gov %>% filter(date>='2020-03-01'),aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
-	scale_x_date(breaks=pretty_breaks())+
+	scale_x_date(breaks=pretty_breaks(5))+
 	theme(legend.position = c(.2,.8))+
 	labs(y="confirmed cases in MA",x="",color=element_blank())
 
@@ -304,7 +305,7 @@ ggplot()+
 	geom_point(data=ca.jhu,aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(),label=comma,
 										 sec.axis = dup_axis())+
-	scale_x_date(breaks=pretty_breaks())+
+	scale_x_date(breaks=pretty_breaks(5))+
 	theme(legend.position = c(.3,.8))+
 	labs(y="confirmed cases in CA",x="",color=element_blank())
 ```
@@ -343,7 +344,7 @@ ggplot()+
 	geom_point(data=ny.jhu,aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(),label=comma,
 										 sec.axis = dup_axis())+
-	scale_x_date(breaks=pretty_breaks())+
+	scale_x_date(breaks=pretty_breaks(5))+
 	theme(legend.position = c(.3,.8))+
 	labs(y="confirmed cases in NY",x="",color=element_blank())
 
@@ -434,7 +435,7 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 
 # US Testing Statistics
 
-Testing in each state. Based on https://covidtracking.com/api/states/daily.csv.
+Testing in each state. Based on https://covidtracking.com/api/states/daily.csv. Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives. 
 
 
 ```{r testing, fig.height=7}
@@ -464,7 +465,7 @@ tmp<- mutate(tmp,	 st.f=factor(state,levels =tmp$state[order(tmp$rate)]))
 ggplot(tmp)+
 	aes(y=st.f,x=rate)+
 	geom_bar(stat='identity')+
-	scale_x_continuous(label=percent)+
+	scale_x_continuous(label=percent,breaks=pretty_breaks())+
 	geom_text(aes(label=positive+negative,x=round(rate+.15,1)),hjust=1)+
 	labs(x='COVID testing positive rate  (total tests)',y="State")
 ```
@@ -484,6 +485,7 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 	geom_label_repel(data=labels,aes(label=state,x=date+8),
 									 nudge_x=1,
 									 direction='x')+
+	scale_x_date(breaks=pretty_breaks())+
 	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
 	labs(y="Cumulative perc. of state population tested",x="")
 
