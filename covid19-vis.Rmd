@@ -71,11 +71,11 @@ US.by_state <- group_by(US,type,date,state)%>%
 	mutate(delta=val-lag(val)) 
 
 
-# this is the data from JHU; see next line
-ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
-	mutate(val.log=log(val)) %>%
-	ungroup %>% 
-	mutate(rn=row_number())
+# this is the data from JHU; 
+# ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
+# 	mutate(val.log=log(val)) %>%
+# 	ungroup %>% 
+# 	mutate(rn=row_number())
 ```
 
 ### World data
@@ -95,40 +95,40 @@ ggplot(covid %>%
 ```
 
 
-### Country breakdown (without China)
-```{r country,fig.height=8}
-tmp=group_by(covid,region,type,date) %>% 
-	filter(val>0,region!='China',date>='2020-02-25') %>%
+### Country breakdown (sometimes without China)
+```{r country,fig.height=8,fig.width=5}
+tmp<- group_by(covid,region,type,date) %>% 
+	filter(val>0,region!='China' | type!='recovered',date>='2020-01-20') %>%
 	summarize(val=sum(val)) %>%
 	group_by(region) %>%
 	filter(max(val)>=1)
-labels=group_by(tmp,region,type) %>% filter(date==max(date))  %>%
+labels<- group_by(tmp,region,type) %>% filter(date==max(date))  %>%
 	ungroup
 
-worst<- labels %>% 
+worst<- c('China',labels %>% 
 	group_by(region) %>% 
 	summarize(val=max(val)) %>% 
-	top_n(6,val) %>% 
-	pull(region)
+	top_n(8,val) %>% 
+	pull(region) )
 
-
-ggplot(tmp)+theme_gray(12)+
+ggplot(filter(tmp,region %in% worst)
+)+theme_gray(12)+
 	aes(date,val,group=c(region),color=region)+
 	scale_y_continuous(limits = c(NA,NA),
-										 breaks=pretty_breaks(10)
-	)+
+										 breaks=pretty_breaks(8)	)+
 	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
 	geom_line()+geom_point()+
 	theme(legend.position="none")+
-	facet_wrap(~type,scales = 'free',ncol=2)+
+	facet_wrap(~type,scales = 'free',ncol=1)+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5))+
 	labs(x="",y='count')+
 	geom_text_repel(data=labels %>%	
-							filter(	region %in% worst| region=='US'),
-							 direction='y',segment.color='dark grey',
-						hjust=0,
-						aes(label=region,x=date+.2),color='black')
+										filter(	region %in% worst| region=='US'),
+									direction='y',segment.color='dark grey',
+									nudge_x =6,
+									hjust=0,
+									aes(label=region,x=date+3),color='black')
 ######################
 ```
 
