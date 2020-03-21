@@ -212,6 +212,9 @@ ggplot(tmp )+
 ```
 
 # Predictions for MA, CA, and NY
+
+MA data from https://github.com/b-lev/massachusetts-covid19-report-archive.
+
 ```{r MA,fig.height=3,fig.width=5}
 # this is the data from JHU; see next line
 ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
@@ -393,6 +396,9 @@ ggplot(rate)+
 # Massachusetts-specific Data
 
 
+MA data from https://github.com/b-lev/massachusetts-covid19-report-archive.
+
+
 The cumulative fraction of MA covid patients that are hospitalized.
 
 ```{r ma-hosp,fig.height=3,fig.width=5}
@@ -481,13 +487,17 @@ labels=filter(testing,date==max(date)) %>% ungroup %>%
 ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 	aes(date,total_per_cap,group=state,color=state)+
 	geom_line()+
-	theme(legend.position = 'none')+
+	theme(legend.position = 'none',
+								axis.text.x = element_text(angle = 90, vjust = .5))+
 	geom_label_repel(data=labels,aes(label=state,x=date+8),
 									 nudge_x=1,
 									 direction='x')+
-	scale_x_date(breaks=pretty_breaks())+
+	scale_x_date(breaks=pretty_breaks(10))+
 	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
 	labs(y="Cumulative perc. of state population tested",x="")
 
 
 ```
+
+
+I hereby disclaim any and all representations and warranties with respect to this data, including accuracy, fitness for use, and merchantability. Reliance for medical guidance or use in commerce is strictly prohibited.
