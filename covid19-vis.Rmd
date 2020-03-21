@@ -1,5 +1,5 @@
 ---
-title: "COVID-19 JHU Visualizations"
+title: "COVID-19 Visualizations"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
@@ -329,7 +329,7 @@ ny.jhu<-filter(US.by_state,state %in% c('New York','NY'),val>=1,date>'2020-03-07
 lm<-with(ny.jhu,lm(val.log~rn))
 fit.int<-lm$coefficients[['(Intercept)']]
 fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(25)) %>% 
+fit<- tibble(rn=1:(18)) %>% 
 	mutate(fit=fit.s*rn+fit.int,
 				 val=exp(fit),
 				 date=as.Date("2020-03-07")+rn) %>%
