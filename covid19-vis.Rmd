@@ -18,8 +18,6 @@ date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 knitr::opts_chunk$set(echo = F,cache=F)
 
 ```
-Thanks to JHU for the data used here (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
-
 (Source code: https://github.com/b-lev/covid19-vis)
 
 ## Main plot
@@ -84,7 +82,7 @@ US.by_state <- group_by(US,type,date,state)%>%
 Below is the important plot. We want to be like S. Korea or lower. 
 
 
-Comparative Growth per captia, where  "day 1" is approx 0.001% of the country's population.
+Comparative Growth per capita, where  "day 1" is approx 0.001% of the country's population.
 
 
 ```{r comp-per-cap, fig.width=4,fig.height=3}
@@ -501,5 +499,8 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 
 ```
 
+Thanks to JHU for the data used here (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
 
 I hereby disclaim any and all representations and warranties with respect to this data, including accuracy, fitness for use, and merchantability. Reliance for medical guidance or use in commerce is strictly prohibited.
+
+
