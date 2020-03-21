@@ -15,12 +15,14 @@ date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=F)
+knitr::opts_chunk$set(echo = F,cache=T)
 
 ```
 Thanks to JHU for the data used here (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
 
 (Source code: https://github.com/b-lev/covid19-vis)
+
+## Main plot
 
 ```{r init, echo=FALSE, include=FALSE}
 suppressPackageStartupMessages(library(tidyverse))
@@ -79,7 +81,48 @@ US.by_state <- group_by(US,type,date,state)%>%
 # 	mutate(rn=row_number())
 ```
 
-### World data
+Below is the important plot. We want to be like S. Korea or lower. 
+
+
+Comparative Growth per captia, where  "day 1" is approx 0.001% of the country's population.
+
+
+```{r comp-per-cap, fig.width=4,fig.height=3}
+# 
+
+comparison<- filter(covid,type %in% c('confirmed'))  %>%
+	group_by(region,date,type) %>%
+	summarize(val=sum(val)) %>%
+	filter(val>=300) %>%
+	group_by(region,type) %>%
+	mutate(day=row_number())%>%
+	filter( region%in% c('Italy','US','S.Korea')) %>%
+	mutate(pop=ifelse(region=='Italy',  60462000,
+										ifelse(region=='US',  331003000,
+													 ifelse(region=='S.Korea',  51269000))))
+
+comp.pc<-comparison %>% filter(val/pop>0.00001) %>%
+	group_by(region) %>%
+	mutate(day=row_number(),valpc=val/pop)
+
+labels<- comp.pc %>% group_by(region) %>% filter(day==max(day))
+# 	mutate(day=max(day,day),valpc=val/pop) 
+
+ggplot(comp.pc)+
+	aes(x=day,y=valpc,group=c(region),color=region)+
+	theme(legend.position = "none")+
+	geom_line()+geom_point()+
+	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
+	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
+	labs(y='confirmed cases per capita')
+```
+
+
+
+## World data
+
+This plot shows the spread of the virus over time across the world. We want the number of confirmed cases (red) to drop to 0, the deaths (green) to stay as low as possible obviously, and the recovered cases (blue) to climb high. 
+
 ```{r world, echo=FALSE,fig.width = 5,fig.height=3}
 
 # All three lines for the world
@@ -97,6 +140,9 @@ ggplot(covid %>%
 
 
 ### Country breakdown (sometimes without China)
+
+These plots show how the numbers have grown over time in each country for confirmed cases, deaths, and recovered cases. All countries want to hit the bent curve that China has reported achieving. 
+
 ```{r country,fig.height=8,fig.width=5}
 tmp<- group_by(covid,region,type,date) %>% 
 	filter(val>0,region!='China' | type!='recovered',date>='2020-01-20') %>%
@@ -134,53 +180,12 @@ ggplot(filter(tmp,region %in% worst)
 ```
 
 
-Comparative Growth with day 1 equal to approx 300 cases 
-
-```{r comaprison, fig.width=4,fig.height=3}
-
-comparison<- filter(covid,type %in% c('confirmed'))  %>%
-	group_by(region,date,type) %>%
-	summarize(val=sum(val)) %>%
-	filter(val>=300) %>%
-	group_by(region,type) %>%
-	mutate(day=row_number())%>%
-	filter( region%in% c('Italy','US','S.Korea')) %>%
-	mutate(pop=ifelse(region=='Italy',  60462000,
-										ifelse(region=='US',  331003000,
-													 ifelse(region=='S.Korea',  51269000))))
-
-labels<- comparison %>% group_by(region) %>% filter(day==max(day)) %>%
-	mutate(day=max(day,day),valpc=val/pop) 
-```
-
-
-Comparative Growth when day 1 is approx 0.001% of the population.
-
-```{r comp-per-cap, fig.width=4,fig.height=3}
-
-ggplot(comparison)+
-	aes(day,val,group=c(region),color=region)+
-	theme(legend.position = "none")+
-	geom_line()+geom_point()+
-	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
-	scale_y_continuous(breaks=pretty_breaks(10))+
-	labs(y='confirmed cases')
-
-comp2<-comparison %>% filter(val/pop>0.00001) %>%
-	group_by(region) %>%
-	mutate(day=row_number(),valpc=val/pop)
-
-ggplot(comp2)+
-	aes(x=day,y=valpc,group=c(region),color=region)+
-	theme(legend.position = "none")+
-	geom_line()+geom_point()+
-	# geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
-	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
-	labs(y='confirmed cases per capita')
-```
 
 
 ### US data
+
+These plots focus on the USA, showing how confirmed, deaths, and recovered have grown over time. Just like above, we want confirmed to come back down to zero, deaths to stay as low as possible, and recovered to grow very high. 
+
 ```{r states, fig.height = 6, fig.width=8}
 
 tmp<-group_by(US,state,type,date) %>% 
@@ -213,7 +218,9 @@ ggplot(tmp )+
 
 # Predictions for MA, CA, and NY
 
-MA data from https://github.com/b-lev/massachusetts-covid19-report-archive.
+These plots show the number of confirmed cases in MA, CA, and NY. The red points show the actual reported values. The blue dots and lines show a fit of the data to exponential growth. We want the dots to bend down, and not grow fast like the blue lines. Currently, testing in the US is very, very, very low; as tests given per day increase, we should expect the red dots to grow faster than predicted. If we can get ahead of the virus, the confirmes cases show bend down.
+
+MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. NY and CA from JHU data set.
 
 ```{r MA,fig.height=3,fig.width=5}
 # this is the data from JHU; see next line
@@ -245,7 +252,7 @@ ma<-select(ma.gov ,date,val,val.log,rn) %>%filter(rn>=10)
 lm<-with(ma,lm(val.log~rn))
 fit.int<-lm$coefficients[['(Intercept)']]
 fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(20)) %>% 
+fit<- tibble(rn=1:(25)) %>% 
 	mutate(fit=fit.s*rn+fit.int,
 				 val=exp(fit),
 				 date=as.Date("2020-03-02")+rn) 
@@ -284,7 +291,7 @@ ca.jhu<-filter(US.by_state,state %in% c('California','CA'),val>=1,date>='2020-03
 lm<-with(ca.jhu,lm(val.log~rn))
 fit.int<-lm$coefficients[['(Intercept)']]
 fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(22)) %>% 
+fit<- tibble(rn=1:(25)) %>% 
 	mutate(fit=fit.s*rn+fit.int,
 				 val=exp(fit),
 				 date=as.Date("2020-02-29")+rn) %>%
@@ -323,7 +330,7 @@ ny.jhu<-filter(US.by_state,state %in% c('New York','NY'),val>=1,date>'2020-03-07
 lm<-with(ny.jhu,lm(val.log~rn))
 fit.int<-lm$coefficients[['(Intercept)']]
 fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(16)) %>% 
+fit<- tibble(rn=1:(25)) %>% 
 	mutate(fit=fit.s*rn+fit.int,
 				 val=exp(fit),
 				 date=as.Date("2020-03-07")+rn) %>%
@@ -355,41 +362,34 @@ ggplot()+
 
 # World Fatality Rates
 
-Really hard to tell whether this analysis makes sense at all given the unreliablity of the data overall. FWIW:
+Here is a plot of the fatility rate. It's really hard to tell whether this analysis makes sense given the unreliablity of the data overall. FWIW:
 
 ```{r fatality, echo=FALSE}
 # fatility date
-# sepaate out china
-rate<- 
-	inner_join(confirmed %>% group_by(date,region) %>% summarize(confirmed=sum(val)),
-						 deaths %>%group_by(date,region) %>% summarize(deaths=sum(val)),
-						 by = c("region", "date")) %>%
-	inner_join(recovered %>%group_by(date,region) %>%	summarize(recovered=sum(val)),
-						 by = c("region", "date")) %>%
+
+rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) %>% summarize(confirmed=sum(val)),
+						 deaths %>%filter(date==max(date)) %>%  group_by(region) %>% summarize(deaths=sum(val)),
+						 by = c("region")) %>%
+	inner_join(recovered %>%filter(date==max(date)) %>%  group_by(region) %>%	summarize(recovered=sum(val)),
+						 by = c("region")) %>%
 	filter(region!='Cruise Ship' ) %>%
 	mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) %>%
 	filter(deaths>0) %>% 
-	mutate(rate=deaths/(deaths+confirmed)) %>%  ungroup %>% 
+	mutate(rate=deaths/(deaths+confirmed+recovered)) %>%  ungroup %>% 
 	rowwise %>%
-	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed))) %>%  ungroup %>% 
-	group_by(region) %>% mutate(min_ci=min(ci)) %>%
-	rowwise %>% 
-	filter(date>'2020-02-18',min_ci<0.005,ci<.01 | (region=='US' & ci<.02))
-labels=rate %>% ungroup %>% group_by(region) %>% filter(date==max(date))
+	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed+recovered))) %>%  ungroup %>% 
+	group_by(region) %>% mutate(min_ci=min(ci)) 
 
-ggplot(rate)+
-	aes(date,rate,group=region,color=region)+
-	geom_text_repel(data=labels,segment.color='dark grey',
-									direction='y',
-						aes(label=region,x=date+.5),					
-						hjust=0,color='black')+
-	geom_line()+geom_point()+
-	#geom_errorbar(aes(ymax=rate+ci,ymin=rate-ci))+ 
+ggplot(rate %>% filter(deaths>15))+
+	aes(reorder(region,desc(rate)),rate)+
 	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
-	scale_x_date(breaks=pretty_breaks(),
-							 limits = c(min(rate$date),max(rate$date)+8))+
-	labs(y='fatality rate',x="")+
-	theme(legend.position='none')
+	geom_bar(stat='identity')+
+	geom_text(aes(label=deaths,y=.001),color='dark grey',hjust=0,angle=90)+
+	labs(x=element_blank(),y="fatality rate")+
+	theme(legend.position="none",
+				axis.text.x = element_text(angle = 90, vjust = .0,hjust=1))
+
+
 
 ```
 
@@ -476,7 +476,8 @@ ggplot(tmp)+
 	labs(x='COVID testing positive rate  (total tests)',y="State")
 ```
 
-Below plot assumes one test per person.
+This plots show how long it is taking each state to test its population, on a per capita basis. 
+(I'm assuming, optimistically, that the test had not be given to the same person twice.)
 
 ```{r testing2}
 
