@@ -229,7 +229,7 @@ ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
 	mutate(rn=row_number())
 
 # data scrapped manually from mass.gov. very different than JHU
-ma.gov<-suppressMessages(read_csv('MA-stats.csv'))%>%
+ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
 	mutate(date=mdy(date),
 				 val=confirmed+presumptive,
 				 val.log=log(val),
@@ -499,7 +499,7 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 
 ```
 
-Thanks to JHU for the data used here (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
+Thanks to JHU for the data (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
 
 I hereby disclaim any and all representations and warranties with respect to this data, including accuracy, fitness for use, and merchantability. Reliance for medical guidance or use in commerce is strictly prohibited.
 
