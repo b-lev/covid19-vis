@@ -15,7 +15,7 @@ date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=T)
+knitr::opts_chunk$set(echo = F,cache=F)
 
 ```
 Thanks to JHU for the data used here (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
@@ -114,6 +114,7 @@ ggplot(comp.pc)+
 	geom_line()+geom_point()+
 	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
 	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
+	scale_x_continuous(breaks=pretty_breaks(10))+
 	labs(y='confirmed cases per capita')
 ```
 
