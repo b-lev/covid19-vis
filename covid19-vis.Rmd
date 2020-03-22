@@ -79,10 +79,12 @@ US.by_state <- group_by(US,type,date,state)%>%
 # 	mutate(rn=row_number())
 ```
 
-Below is the important plot. We want to be like S. Korea or lower. 
+Below is the most important plot. We want to be like S. Korea or lower. 
 
 
 Comparative Growth per capita, where  "day 1" is approx 0.001% of the country's population.
+In reality, we want to know what percentage of hospital beds have been taken up, and so
+population is just a proxy.
 
 
 ```{r comp-per-cap, fig.width=4,fig.height=3}
@@ -110,7 +112,7 @@ ggplot(comp.pc)+
 	aes(x=day,y=valpc,group=c(region),color=region)+
 	theme(legend.position = "none")+
 	geom_line()+geom_point()+
-	geom_text_repel(data=labels,aes(label=region),color='black',direction='x')+
+	geom_text_repel(data=labels,aes(label=region),color='black',direction='x',seed =0)+
 	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
 	labs(y='confirmed cases per capita')
@@ -169,11 +171,11 @@ ggplot(filter(tmp,region %in% worst)
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5))+
 	labs(x="",y='count')+
-	geom_text_repel(data=labels %>%	
-										filter(	region %in% worst| region=='US'),
+	geom_text_repel(data=labels %>%	filter(	region %in% worst| region=='US'),
 									direction='y',segment.color='dark grey',
 									nudge_x =6,
 									hjust=0,
+									seed=0,
 									aes(label=region,x=date+3),color='black')
 ######################
 ```
@@ -209,6 +211,7 @@ ggplot(tmp )+
 	geom_text_repel(data=labels,
 									direction = 'x',
 									aes(label=state,x=date+3),
+									seed=0,
 									color='black')+
 	facet_wrap(type~.,nrow=2,scales = 'free')+
 	labs(x="",y='')
@@ -491,6 +494,7 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 								axis.text.x = element_text(angle = 90, vjust = .5))+
 	geom_label_repel(data=labels,aes(label=state,x=date+8),
 									 nudge_x=1,
+									 seed=0,
 									 direction='x')+
 	scale_x_date(breaks=pretty_breaks(10))+
 	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
