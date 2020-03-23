@@ -15,7 +15,7 @@ date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=F)
+knitr::opts_chunk$set(echo = F,cache=T)
 
 ```
 (Source code: https://github.com/b-lev/covid19-vis)
@@ -226,10 +226,10 @@ MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. NY a
 
 ```{r MA,fig.height=3,fig.width=5}
 # this is the data from JHU; see next line
-ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
-	mutate(val.log=log(val)) %>%
-	ungroup %>% 
-	mutate(rn=row_number())
+# ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
+# 	mutate(val.log=log(val)) %>%
+# 	ungroup %>% 
+# 	mutate(rn=row_number())
 
 # data scrapped manually from mass.gov. very different than JHU
 ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
@@ -421,10 +421,7 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 MA is performing just 300 tests per day, and earlier 200 per day. This plots the number of tests per day; data comes in only once a day...
 
 ```{r ma-testing, fig.height=3,fig.width=5}
-ma.testing<-select(ma.gov,date,Lab_MA_PHL_pos,
-									 Lab_MA_PHL_neg,Lab_LabCorp_pos,
-									 Lab_LabCorp_neg,Lab_Quest_pos,
-									 Lab_Quest_neg) %>%
+ma.testing<-select(ma.gov,date,contains("Lab_")) %>%
 	gather(var,val,-date) %>% 
 	na.omit %>%
 	mutate(result=ifelse(str_ends(var,"_pos"),"pos","neg")) %>%
