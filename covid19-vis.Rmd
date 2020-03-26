@@ -15,7 +15,7 @@ date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=T,autodep = T)
+knitr::opts_chunk$set(echo = F,cache=F,autodep = T)
 
 ```
 (Source code: https://github.com/b-lev/covid19-vis)
@@ -121,12 +121,12 @@ This plot shows the spread of the virus over time across the world. We want the 
 
 ```{r world, echo=FALSE,fig.width = 5,fig.height=3}
 
-# All three lines for the world
+# All lines for the world
 ggplot(covid %>% 
 			 	group_by(date,type) %>% 
 			 	summarize(val=sum(val)))+
 	aes(date,val,group=type,color=type)+
-	geom_line()+geom_point()+
+	geom_line()+geom_point(size=.5)+
 	scale_y_continuous(label=comma,breaks=pretty_breaks(),
 										 sec.axis = sec_axis(~./7771316390,labels = percent))+
 	theme(legend.position = c(.2,.8))+
@@ -159,7 +159,7 @@ ggplot(filter(tmp,region %in% worst)
 	scale_y_continuous(limits = c(0,NA),
 										 breaks=pretty_breaks(8)	)+
 	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
-	geom_line()+geom_point()+
+	geom_line()+geom_point(size=.5)+
 	theme(legend.position="none")+
 	facet_wrap(~type,scales = 'free',ncol=2)+
 	theme(legend.position="none",
