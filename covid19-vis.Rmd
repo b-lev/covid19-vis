@@ -81,9 +81,9 @@ covid<- bind_rows(active,tmp)
 ```
 
 
-Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 1" is approx 0.0004% of the country's population.
+Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita (on a logarithmic scale), where  "day 1" is approx 0.0004% of the country's population.
 In reality, we want to know what percentage of hospital beds have been taken up, and so
-population is just a proxy.
+population is just a proxy. The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.
 ```{r}
 
 
@@ -92,25 +92,39 @@ comparison<- filter(covid,type %in% c('confirmed'))  %>%
 	summarize(val=sum(val)) %>%
 	group_by(region,type) %>%
 	mutate(day=row_number())%>%
-	filter( region%in% c('Italy','US','S.Korea')) %>%
+	filter( region%in% c('Italy','US','S.Korea','Spain')) %>%
 	mutate(pop=ifelse(region=='Italy',  60462000,
 										ifelse(region=='US',  331003000,
-													 ifelse(region=='S.Korea',  51269000))))
+													 ifelse(region=='Spain',47007367	,
+													 ifelse(region=='S.Korea',  51269000)))))
 
 comp.pc<-comparison %>% filter(val/pop>0.00004) %>%
 	group_by(region) %>%
-	mutate(day=row_number(),valpc=val/pop)
+	mutate(day=row_number()-1,valpc=val/pop)
 
 labels<- comp.pc %>% group_by(region) %>% filter(day==max(day))
+
+
+template<- expand.grid(day=0:25,rate=c(2,3,4,5,10)) %>%
+	as.tbl %>%
+	mutate(region=paste(rate),valpc=0.00004*2**(day/rate))
+
+gr.labels=tibble(text=c('every\n2 days','every\n3 days','every\n4 days',
+												'every\n5 days','every\n10 days'),
+								 x=c(10,16,23,23,15),
+								 y=c(.0018,.0018,.0018,.0007,.0001))
 
 ggplot(comp.pc)+
 	aes(x=day,y=valpc,group=c(region),color=region)+
 	theme(legend.position = "none")+
-	geom_line()+geom_point()+
+	geom_line()+geom_point(size=.5)+
+	geom_line(data=template,linetype=2,color='grey')+
+	geom_text(data=gr.labels,aes(label=text,group=NA,x=x,y=y),color='grey')+
 	geom_text_repel(data=labels,aes(label=region),color='black',direction='x',seed =0)+
-	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
+	scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
-	labs(y='confirmed cases per capita')
+	coord_cartesian(ylim=c(0.00004,.002))+
+	labs(y='confirmed cases per capita',x='Days since 0.004% of the population infected')
 
 ```
 
@@ -183,7 +197,7 @@ ggplot(filter(tmp,region %in% worst)
 
 MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. 
 
-```{r MA,fig.height=3,fig.width=5}
+```{r MA.fit,fig.height=3,fig.width=5}
 
 # Exponential fit
 covid.fit<- function(actual,last=7,pred=7){
