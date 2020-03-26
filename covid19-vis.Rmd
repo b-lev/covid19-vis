@@ -263,7 +263,8 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 
 ```
 
-MA is performing an increasing (but still inadequate) number of tests per day.
+MA is performing an increasing (but still inadequate) number of tests per day. 
+
 
 ```{r ma-testing, fig.height=3,fig.width=5}
 ma.testing<-select(ma.gov,date,contains("Lab_")) %>%
@@ -279,9 +280,27 @@ ma.testing<-select(ma.gov,date,contains("Lab_")) %>%
 ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 	geom_bar(stat='identity',position = 'stack',width=1)+
 	scale_y_continuous(breaks=pretty_breaks())+
+		scale_x_date(breaks=pretty_breaks())+
 	labs(y="Tests in MA per day")
+
 ```
 
+
+```{r sheldon}
+tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta)) 
+# 
+# ggplot(ma.testing)+
+# 	aes(date,delta,group=result,color=result)+
+# 	geom_point()+geom_line()+
+# 	scale_y_log10(limits=c(1,NA))+
+# 	labs(x='',y='Daily test results in MA')
+
+ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
+	geom_point()+geom_line()+
+	scale_y_continuous(limits=c(0,NA),label=percent,breaks = pretty_breaks())+
+			scale_x_date(breaks=pretty_breaks())+
+	labs(x="",y="Fraction of positive daily tests in MA")
+```
 
 
 # US Testing Statistics
