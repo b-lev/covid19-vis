@@ -1,26 +1,22 @@
 ---
 title: "COVID-19 Visualizations"
-knit: (function(input_file, encoding) {
-  out_dir <- 'docs';
-  rmarkdown::render(input_file,
- encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: ""
 output:
   rmarkdown::html_document:
     theme: cosmo
     toc: true
-date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
+editor_options: 
+  chunk_output_type: console
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=F)
+knitr::opts_chunk$set(echo = F,cache=T,autodep = T)
 
 ```
 (Source code: https://github.com/b-lev/covid19-vis)
 
-## Main plot
+# Main plot
 
 ```{r init, echo=FALSE, include=FALSE}
 suppressPackageStartupMessages(library(tidyverse))
@@ -34,66 +30,62 @@ theme_update(legend.position='top')
 # transpose the colums/rows
 # set type column to confirmed" (or deaths or recovered)
 # rename columns
-confirmed<- fread("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv") %>% 
+
+
+confirmed<- fread("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv") %>% 
 	as.tbl %>%
 	gather(date, val, -`Province/State`,-`Country/Region`,-Lat ,-Long) %>%
 	mutate(date=mdy(date),type='confirmed') %>%
-	rename('province'=`Province/State`,region=`Country/Region`)
+	rename('province'=`Province/State`,region=`Country/Region`) %>%
+	replace_na(list(province=""))
 
-deaths<- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv") %>% 
+deaths<- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv") %>% 
 	gather(date, val, -`Province/State`,-`Country/Region`,-Lat ,-Long) %>%
 	mutate(date=mdy(date),type='deaths') %>%
-	rename('province'=`Province/State`,region=`Country/Region`)
+	rename('province'=`Province/State`,region=`Country/Region`)%>%
+	replace_na(list(province=""))
 
-recovered<- read_csv('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv')%>% 
+
+recovered<- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv") %>% 
 	gather(date, val, -`Province/State`,-`Country/Region`,-Lat ,-Long) %>%
 	mutate(date=mdy(date),type='recovered') %>%
-	rename('province'=`Province/State`,region=`Country/Region`)
+	rename('province'=`Province/State`,region=`Country/Region`)%>%
+	replace_na(list(province=""))
+
+
+tmp<- bind_rows(deaths,confirmed,recovered)%>% filter(val>0) %>%
+	mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) 
+
+active<- inner_join(
+	inner_join(filter(tmp,type=='confirmed'),
+						 filter(tmp,type=='recovered'),
+						 by=c('date','region','province','Lat','Long'),
+						 suffix=c('.c','.r')),
+	filter(tmp,type=='deaths'),
+	by=c('date','region','province','Lat','Long')) %>%
+	select(!contains('type')) %>%
+	mutate(val=val.c-val.r-val,
+				 type='active') %>%
+	select(-c(val.c,val.r)) 
 
 # bind all rows together
-covid<- bind_rows(confirmed,deaths,recovered)%>% filter(val>0) %>%
-		mutate(region=ifelse(region=='Korea, South',"S.Korea",region))
+covid<- bind_rows(active,tmp)
 
 
-# cleanup: separate out city and state. 
-# Sometimes states are two-letter abbrev; sometimes full name. Make all two letters
-US<- filter(covid,region=='US') %>%
-	mutate(province=ifelse(str_count(province,",")>0,province,paste0(", ",province))) %>%
-	separate(province,c("city",'state'),sep=", ",remove=F,fill="right") %>%
-	mutate(state=ifelse(city=="",state.abb[match(state,state.name)],state))%>%
-	filter(!is.na(state))
-
-# Grab data fro each state, and ignore cruise ships
-US.by_state <- group_by(US,type,date,state)%>% 
-	summarize(val=sum(val)) %>%
-	filter(!(state  %in% c('CA (From Diamond Princess)','NE (From Diamond Princess)','TX (From Diamond Princess)')))%>%
-	group_by(type,state)%>% 
-	arrange(type,state,date) %>%
-	mutate(delta=val-lag(val)) 
 
 
-# this is the data from JHU; 
-# ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
-# 	mutate(val.log=log(val)) %>%
-# 	ungroup %>% 
-# 	mutate(rn=row_number())
 ```
 
-Below is the most important plot. We want to be like S. Korea or lower. 
 
-
-Comparative Growth per capita, where  "day 1" is approx 0.001% of the country's population.
+Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 1" is approx 0.0004% of the country's population.
 In reality, we want to know what percentage of hospital beds have been taken up, and so
 population is just a proxy.
+```{r}
 
-
-```{r comp-per-cap, fig.width=4,fig.height=3}
-# 
 
 comparison<- filter(covid,type %in% c('confirmed'))  %>%
 	group_by(region,date,type) %>%
 	summarize(val=sum(val)) %>%
-	filter(val>=300) %>%
 	group_by(region,type) %>%
 	mutate(day=row_number())%>%
 	filter( region%in% c('Italy','US','S.Korea')) %>%
@@ -101,12 +93,11 @@ comparison<- filter(covid,type %in% c('confirmed'))  %>%
 										ifelse(region=='US',  331003000,
 													 ifelse(region=='S.Korea',  51269000))))
 
-comp.pc<-comparison %>% filter(val/pop>0.00001) %>%
+comp.pc<-comparison %>% filter(val/pop>0.00004) %>%
 	group_by(region) %>%
 	mutate(day=row_number(),valpc=val/pop)
 
 labels<- comp.pc %>% group_by(region) %>% filter(day==max(day))
-# 	mutate(day=max(day,day),valpc=val/pop) 
 
 ggplot(comp.pc)+
 	aes(x=day,y=valpc,group=c(region),color=region)+
@@ -116,13 +107,13 @@ ggplot(comp.pc)+
 	scale_y_continuous(breaks=pretty_breaks(10),label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
 	labs(y='confirmed cases per capita')
+
 ```
 
 
+# World data
 
-## World data
-
-This plot shows the spread of the virus over time across the world. We want the number of confirmed cases (red) to drop to 0, the deaths (green) to stay as low as possible obviously, and the recovered cases (blue) to climb high. 
+This plot shows the spread of the virus over time across the world. We want the number of active cases  to drop to 0, the deaths to stay as low as possible obviously, and the recovered cases (blue) to climb high. Confirmed is a cumulative count of everyone that has tested positive. 
 
 ```{r world, echo=FALSE,fig.width = 5,fig.height=3}
 
@@ -139,266 +130,116 @@ ggplot(covid %>%
 	labs(x=element_blank(),y=element_blank(),color=element_blank())
 ```
 
+These plots show how the numbers have grown over time in each country. All countries want to hit the bent curve that China has reported achieving. 
 
-### Country breakdown (sometimes without China)
+```{r world2}
 
-These plots show how the numbers have grown over time in each country for confirmed cases, deaths, and recovered cases. All countries want to hit the bent curve that China has reported achieving. 
-
-```{r country,fig.height=8,fig.width=5}
 tmp<- group_by(covid,region,type,date) %>% 
-	filter(val>0,region!='China' | type!='recovered',date>='2020-01-20') %>%
+	filter(val>0,date>='2020-01-20') %>%
 	summarize(val=sum(val)) %>%
 	group_by(region) %>%
 	filter(max(val)>=1)
+
 labels<- group_by(tmp,region,type) %>% filter(date==max(date))  %>%
 	ungroup
 
-worst<- c('China',labels %>% 
-	group_by(region) %>% 
-	summarize(val=max(val)) %>% 
-	top_n(8,val) %>% 
-	pull(region) )
+worst<- c(labels %>% 
+						group_by(region) %>% 
+						summarize(val=max(val)) %>% 
+						top_n(6,val) %>% 
+						pull(region) )
 
 ggplot(filter(tmp,region %in% worst)
 )+theme_gray(12)+
 	aes(date,val,group=c(region),color=region)+
-	scale_y_continuous(limits = c(NA,NA),
+	scale_y_continuous(limits = c(0,NA),
 										 breaks=pretty_breaks(8)	)+
 	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
 	geom_line()+geom_point()+
 	theme(legend.position="none")+
-	facet_wrap(~type,scales = 'free',ncol=1)+
+	facet_wrap(~type,scales = 'free',ncol=2)+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5))+
 	labs(x="",y='count')+
-	geom_text_repel(data=labels %>%	filter(	region %in% worst| region=='US'),
+	geom_text_repel(data=labels %>%	filter(	(region %in% worst)| region=='US'),
 									direction='y',segment.color='dark grey',
-									nudge_x =6,
+									nudge_x =0,
 									hjust=0,
 									seed=0,
-									aes(label=region,x=date+3),color='black')
-######################
+									aes(label=region,x=date),color='black')
+
+
+
+
 ```
 
 
 
+# Massachusetts Data 
 
-### US data
-
-These plots focus on the USA, showing how confirmed, deaths, and recovered have grown over time. Just like above, we want confirmed to come back down to zero, deaths to stay as low as possible, and recovered to grow very high. 
-
-```{r states, fig.height = 6, fig.width=8}
-
-tmp<-group_by(US,state,type,date) %>% 
-	summarize(val=sum(val)) %>%
-	group_by(state) %>%
-	filter(date>'2020-02-23')
-labels<- group_by(tmp,type) %>% 
-	filter(date==max(date)) %>%
-	top_n(5,val)
-
-
-ggplot(tmp )+
-	aes(date,val,group=c(state),color=state)+
-	scale_y_continuous(breaks=pretty_breaks(8), limits = c(0,NA),
-	)+
-	scale_x_date(breaks=pretty_breaks(10),
-							 date_labels = "%b%d")+
-	geom_line()+geom_point()+
-	theme(legend.position="none",
-				axis.text.x = element_text(angle = 90, vjust = .5),
-				panel.spacing = unit(2, "lines"))+
-	geom_text_repel(data=labels,
-									direction = 'x',
-									aes(label=state,x=date+3),
-									seed=0,
-									color='black')+
-	facet_wrap(type~.,nrow=2,scales = 'free')+
-	labs(x="",y='')
-######################
-```
-
-# Predictions for MA, CA, and NY
-
-These plots show the number of confirmed cases in MA, CA, and NY. The red points show the actual reported values. The blue dots and lines show a fit of the data to exponential growth. We want the dots to bend down, and not grow fast like the blue lines. Currently, testing in the US is very, very, very low; as tests given per day increase, we should expect the red dots to grow faster than predicted. If we can get ahead of the virus, the confirmes cases show bend down.
-
-MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. NY and CA from JHU data set.
+MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. 
 
 ```{r MA,fig.height=3,fig.width=5}
-# this is the data from JHU; see next line
-# ma.jhu<-filter(US.by_state,state %in% c('Massachusetts','MA'),val>=1) %>%
-# 	mutate(val.log=log(val)) %>%
-# 	ungroup %>% 
-# 	mutate(rn=row_number())
+
+# Exponential fit
+covid.fit<- function(actual,last=7,pred=7){
+	# assumes columns: val.log, rn,date
+	week<- top_n(actual,last,rn)
+	start_date<- min(week$date)
+	start_rn <- min(week$rn)
+	lm<-with(week,lm(val.log~rn))
+	fit.int<-lm$coefficients[['(Intercept)']]
+	fit.s<- lm$coefficients[['rn']]
+	fit<- tibble(rn=start_rn:(start_rn+last+pred)) %>% 
+		mutate(date=start_date+rn-start_rn,
+					 fit=fit.s*rn+fit.int,
+					 val=exp(fit),
+		) 
+	return(fit)
+}
 
 # data scrapped manually from mass.gov. very different than JHU
 ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
 	mutate(date=mdy(date),
-				 val=confirmed+presumptive,
+				 val=confirmed,
 				 val.log=log(val),
 				 rn=row_number()-2)%>% 
 	mutate(delta=val-lag(val))
 
 # plot new cases per day
-# ggplot(ma.gov %>% select(date,val,delta) %>%na.omit)+
-# 	aes(date,delta)+
-# 	geom_bar(stat="identity")+
-# 	scale_y_continuous(breaks=pretty_breaks(10))+
-# 	labs(y="new cases in MA per day")
-
-# Fit MA data to exponential 
+ggplot(ma.gov %>% select(date,val,delta) %>%na.omit)+
+	aes(date,delta)+
+	geom_bar(stat="identity")+
+	scale_y_continuous(breaks=pretty_breaks(10))+
+	labs(y="new cases in MA per day",x=element_blank())
 
 # adjust "rn>0" to fit to different parts of the data
-ma<-select(ma.gov ,date,val,val.log,rn) %>%filter(rn>=10)
+ma<-select(ma.gov ,date,val,val.log,rn) 
+ma.fit<- covid.fit(ma,last=7,pred=5)
 
-lm<-with(ma,lm(val.log~rn))
-fit.int<-lm$coefficients[['(Intercept)']]
-fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(25)) %>% 
-	mutate(fit=fit.s*rn+fit.int,
-				 val=exp(fit),
-				 date=as.Date("2020-03-02")+rn) 
-
-# 
-# Show fit to line on log-scake
+# # Show fit to line on log-scake
 # ggplot()+
 # 	geom_point(data=ma.gov ,aes(rn,val.log))+
-# 	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
-# 	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
+# 	# geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
+# 	geom_line(data=ma.fit,aes(x=rn,y=fit),color='red')+
 # 	scale_x_continuous(breaks=pretty_breaks())+
 # 	scale_y_continuous(breaks=1:30)+
-# 	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
+# 	# labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
 # 	labs(y="confirmed (log scale)",x="day")
 
 ggplot()+
-	geom_line(data=fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
-	geom_point(data=fit,aes(x=date,y=val,color='prediction'))	+
-	geom_point(data=ma.gov %>% filter(date>='2020-03-01'),aes(date,val,color='actual'))+
+	geom_line(data=ma.fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
+	geom_point(data=ma.fit,aes(x=date,y=val,color='prediction'))	+
+	geom_point(data=ma.gov %>% filter(date>='2020-03-01'),
+						 aes(date,val,color='actual'))+
+	geom_line(data=ma.gov %>% filter(date>='2020-03-01'),
+						 aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
 	scale_x_date(breaks=pretty_breaks(5))+
 	theme(legend.position = c(.2,.8))+
 	labs(y="confirmed cases in MA",x="",color=element_blank())
-
 ```
-
-```{r CA, fig.height=3,fig.width=5}
-
-ca.jhu<-filter(US.by_state,state %in% c('California','CA'),val>=1,date>='2020-03-01') %>%
-	mutate(val.log=log(val)) %>%
-	ungroup %>% 
-	mutate(rn=row_number())%>% 
-	filter(type=='confirmed')
-
-lm<-with(ca.jhu,lm(val.log~rn))
-fit.int<-lm$coefficients[['(Intercept)']]
-fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(25)) %>% 
-	mutate(fit=fit.s*rn+fit.int,
-				 val=exp(fit),
-				 date=as.Date("2020-02-29")+rn) %>%
-	filter(val<=12000000)
-# 
-# Show fit to line on log-scake
-#ggplot()+
-#	geom_point(data=ca.jhu,aes(rn,val.log))+
-#	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
-#	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
-#	scale_x_continuous(breaks=pretty_breaks())+
-#	scale_y_continuous(breaks=1:20,
-#										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
-#	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
-#	labs(y="confirmed (log scale)",x="day")
-
-# Show plot and prediction 
-ggplot()+
-	geom_line(data=fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
-	geom_point(data=fit,aes(x=date,y=val,color='prediction'))	+
-	geom_point(data=ca.jhu,aes(date,val,color='actual'))+
-	scale_y_continuous(breaks=pretty_breaks(),label=comma,
-										 sec.axis = dup_axis())+
-	scale_x_date(breaks=pretty_breaks(5))+
-	theme(legend.position = c(.3,.8))+
-	labs(y="confirmed cases in CA",x="",color=element_blank())
-```
-
-```{r NY, fig.height=3,fig.width=5}
-ny.jhu<-filter(US.by_state,state %in% c('New York','NY'),val>=1,date>'2020-03-07') %>%
-	mutate(val.log=log(val)) %>%
-	ungroup %>% 
-	mutate(rn=row_number())%>% 
-	filter(type=='confirmed')
-
-lm<-with(ny.jhu,lm(val.log~rn))
-fit.int<-lm$coefficients[['(Intercept)']]
-fit.s<- lm$coefficients[['rn']]
-fit<- tibble(rn=1:(18)) %>% 
-	mutate(fit=fit.s*rn+fit.int,
-				 val=exp(fit),
-				 date=as.Date("2020-03-07")+rn) %>%
-	filter(val<=12000000)
-# 
-# Show fit to line on log-scake
-#ggplot()+
-#	geom_point(data=ny.jhu,aes(rn,val.log))+
-#	geom_abline(aes(slope=fit.s,intercept = fit.int),linetype=2)+
-#	geom_line(data=fit,aes(x=rn,y=fit),color='red')+
-#	scale_x_continuous(breaks=pretty_breaks())+
-#	scale_y_continuous(breaks=1:20,
-#										 sec.axis =sec_axis(~ exp(.),name='Continuous scale'))+
-#	labs(title=paste(round(fit.s,3),"*x+",round(fit.int,3)))+
-#	labs(y="confirmed (log scale)",x="day")
-
-# Show plot and prediction 
-ggplot()+
-	geom_line(data=fit,aes(x=date,y=val,color='prediction'),linetype=2)	+
-	geom_point(data=fit,aes(x=date,y=val,color='prediction'))	+
-	geom_point(data=ny.jhu,aes(date,val,color='actual'))+
-	scale_y_continuous(breaks=pretty_breaks(),label=comma,
-										 sec.axis = dup_axis())+
-	scale_x_date(breaks=pretty_breaks(5))+
-	theme(legend.position = c(.3,.8))+
-	labs(y="confirmed cases in NY",x="",color=element_blank())
-
-```
-
-# World Fatality Rates
-
-Here is a plot of the fatility rate. It's really hard to tell whether this analysis makes sense given the unreliablity of the data overall. FWIW:
-
-```{r fatality, echo=FALSE}
-# fatility date
-
-rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) %>% summarize(confirmed=sum(val)),
-						 deaths %>%filter(date==max(date)) %>%  group_by(region) %>% summarize(deaths=sum(val)),
-						 by = c("region")) %>%
-	inner_join(recovered %>%filter(date==max(date)) %>%  group_by(region) %>%	summarize(recovered=sum(val)),
-						 by = c("region")) %>%
-	filter(region!='Cruise Ship' ) %>%
-	mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) %>%
-	filter(deaths>0) %>% 
-	mutate(rate=deaths/(deaths+confirmed+recovered)) %>%  ungroup %>% 
-	rowwise %>%
-	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed+recovered))) %>%  ungroup %>% 
-	group_by(region) %>% mutate(min_ci=min(ci)) 
-
-ggplot(rate %>% filter(deaths>15))+
-	aes(reorder(region,desc(rate)),rate)+
-	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
-	geom_bar(stat='identity')+
-	geom_text(aes(label=deaths,y=.001),color='dark grey',hjust=0,angle=90)+
-	labs(x=element_blank(),y="fatality rate")+
-	theme(legend.position="none",
-				axis.text.x = element_text(angle = 90, vjust = .0,hjust=1))
-
-
-
-```
-
-# Massachusetts-specific Data
-
-
-MA data from https://github.com/b-lev/massachusetts-covid19-report-archive.
 
 
 The cumulative fraction of MA covid patients that are hospitalized.
@@ -414,7 +255,7 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 										 breaks=pretty_breaks(10))+
 	labs(y="hospitalization in MA",
 			 x=element_blank())
-	
+
 
 ```
 
@@ -436,6 +277,7 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 	scale_y_continuous(breaks=pretty_breaks())+
 	labs(y="Tests in MA per day")
 ```
+
 
 
 # US Testing Statistics
@@ -503,5 +345,3 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 Thanks to JHU for the data (https://github.com/CSSEGISandData/COVID-19). Results are only as good as the data, which is only as good as the amount of testing done. 
 
 I hereby disclaim any and all representations and warranties with respect to this data, including accuracy, fitness for use, and merchantability. Reliance for medical guidance or use in commerce is strictly prohibited.
-
-
