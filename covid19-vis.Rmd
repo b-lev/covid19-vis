@@ -365,7 +365,7 @@ ggplot(inner_join(ma.demo,tmp,by='demo'))+
 	labs(x='age demographic',y='Fraction of that demo\'s population')
 ```
 
-```{r counties}
+```{r counties,fig.height=6,fig.width=5}
 
 ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes ,	17352	\nNantucket 	,11327")
 
@@ -422,14 +422,11 @@ ggplot(ma.counties.f)+
 
 
 ```
+# US States
 
-# US Testing Statistics
+(Based on https://covidtracking.com/api/states/daily.csv.)
 
-Testing in each state. Based on https://covidtracking.com/api/states/daily.csv. Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives. 
-
-
-```{r testing, fig.height=7}
-
+````{r states,fig.height=9,fig.width=5}
 ct<- 
 	suppressMessages(read_csv('https://covidtracking.com/api/states/daily.csv'))  %>%
 	group_by(state) %>% arrange(state,date) %>%
@@ -445,19 +442,56 @@ state.pops<-suppressMessages(read_csv('state-pop-census.csv')) %>%
 testing<-ct %>% group_by(state) %>% arrange(state,date) %>%
 	mutate(delta=total-lag(total,1)) %>% 
 	inner_join(state.pops,by='state')	%>% ungroup %>%
-	mutate(total_per_cap=total/pop)
+	mutate(total_per_cap=total/pop) %>% 
+	rename(confirmed=positive)
+
+
+tmp<-select(testing,date,state,confirmed,death,hospitalized) %>% gather(type,val,-date,-state)%>%
+	filter(date>'2020-02-23')
+labels<- group_by(tmp,type) %>% 
+	filter(date==max(date)) %>%
+	top_n(5,val)
+
+ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
+	aes(date,val,group=c(state),color=state)+
+	scale_y_continuous(breaks=pretty_breaks(8), limits = c(0,NA),	)+
+	scale_x_date(breaks=pretty_breaks(10),							 date_labels = "%b%d")+
+	geom_line()+geom_point()+
+	theme(legend.position="none",
+				axis.text.x = element_text(angle = 90, vjust = .5),
+				panel.spacing = unit(2, "lines"))+
+	geom_text_repel(data=labels,
+									direction = 'x',
+									aes(label=state,x=date+3),
+									seed=0,
+									color='black')+
+	facet_wrap(type~.,nrow=2,scales = 'free')+
+	labs(x="",y='')
+
+
+```
+
+# US Testing Statistics
+
+Testing in each state.  Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives.  (Based on https://covidtracking.com/api/states/daily.csv.)
+
+
+```{r testing, fig.height=7}
 
 
 tmp<- filter(testing,date==max(date))  %>%
-	mutate(rate=positive/(positive+negative))
+	mutate(rate=confirmed/(confirmed+negative))
 tmp<- mutate(tmp,	 st.f=factor(state,levels =tmp$state[order(tmp$rate)]))
 
 ggplot(tmp)+
 	aes(y=st.f,x=rate)+
 	geom_bar(stat='identity')+
 	scale_x_continuous(label=percent,breaks=pretty_breaks())+
-	geom_text(aes(label=positive+negative,x=round(rate+.15,1)),hjust=1)+
+	geom_text(aes(label=confirmed+negative,x=round(rate+.15,1)),hjust=1)+
 	labs(x='COVID testing positive rate  (total tests)',y="State")
+
+
+
 ```
 
 This plots show how long it is taking each state to test its population, on a per capita basis. 
