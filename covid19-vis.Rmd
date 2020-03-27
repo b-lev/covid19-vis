@@ -1,15 +1,16 @@
+# !diagnostics off
 ---
 title: "COVID-19 Visualizations"
 knit: (function(input_file, encoding) {
-  out_dir <- 'docs';
-  rmarkdown::render(input_file,
- encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+out_dir <- 'docs';
+rmarkdown::render(input_file,
+encoding=encoding,
+output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: ""
 output:
-  rmarkdown::html_document:
-    theme: cosmo
-    toc: true
+rmarkdown::html_document:
+theme: cosmo
+toc: true
 date: "Last updated: `r format(Sys.time(), '%d %B, %Y')`"
 ---
 
@@ -80,8 +81,6 @@ start_val= 0.000008
 
 
 ```
-
-
 Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 0" is approx `r format(start_val*100,scientific=F,digits=4)`% of the country's population. This is a log scale, and so exponential/viral growth is a straight line.  The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.  
 ```{r}
 
@@ -95,7 +94,7 @@ comparison<- filter(covid,type %in% c('confirmed'))  %>%
 	mutate(pop=ifelse(region=='Italy',  60462000,
 										ifelse(region=='US',  331003000,
 													 ifelse(region=='Spain',47007367	,
-													 ifelse(region=='S.Korea',  51269000)))))
+													 			 ifelse(region=='S.Korea',  51269000)))))
 
 comp.pc<- comparison %>%  ungroup %>% rowwise %>%
 	mutate(valpc=val/pop, delta=abs(start_val-valpc)) %>%
@@ -254,7 +253,7 @@ ggplot()+
 	geom_point(data=ma.gov %>% filter(date>='2020-03-01'),
 						 aes(date,val,color='actual'))+
 	geom_line(data=ma.gov %>% filter(date>='2020-03-01'),
-						 aes(date,val,color='actual'))+
+						aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
 	scale_x_date(breaks=pretty_breaks(5))+
@@ -295,15 +294,15 @@ ma.testing<-select(ma.gov,date,contains("Lab_")) %>%
 	na.omit
 
 ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
-	geom_bar(stat='identity',position = 'stack',width=1)+
+	geom_bar(stat='identity',position = 'stack',width=1,color='black')+
 	scale_y_continuous(breaks=pretty_breaks())+
-		scale_x_date(breaks=pretty_breaks())+
+	scale_x_date(breaks=pretty_breaks())+
 	labs(y="Tests in MA per day")
 
 ```
 
 
-```{r sheldon}
+```{r sheldon,fig.height=3,fig.width=5}
 tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta)) 
 # 
 # ggplot(ma.testing)+
@@ -314,12 +313,30 @@ tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta))
 
 ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
 	geom_point()+geom_line()+
-	scale_y_continuous(limits=c(0,NA),label=percent,breaks = pretty_breaks())+
-			scale_x_date(breaks=pretty_breaks())+
+	scale_y_continuous(limits=c(0,NA),
+										 label=percent,breaks = pretty_breaks())+
+	scale_x_date(breaks=pretty_breaks())+
 	labs(x="",y="Fraction of positive daily tests in MA")
 ```
 
+```{r age,fig.height=3,fig.width=5}
+ma.demo<- tibble(demo=c('0-19','20-29', '30-39', '40-49', '50-59', '60-69', '70-'),
+					pop=c(1549659,831628,809392, 972104, 919120, 627497, 599347))
 
+tmp<- select(ma.gov,date,contains('age_')) %>%
+	filter(date==max(date)) %>%
+	pivot_longer(names_to = 'demo',names_prefix = "age_",
+							 values_to = 'val',
+							 values_drop_na = T,
+							 cols = starts_with('age_'))
+ggplot(inner_join(ma.demo,tmp,by='demo'))+
+	aes(demo,val/pop)+
+	geom_bar(stat='identity')+
+	scale_y_continuous(label=percent,breaks = pretty_breaks())+
+	# theme(axis.text.x = element_text(angle=0,hjust=1))+
+	geom_text(aes(label=val,y=val/pop*.9),color='yellow')+
+	labs(x='age demographic',y='Fraction of that demo\'s population')
+```
 # US Testing Statistics
 
 Testing in each state. Based on https://covidtracking.com/api/states/daily.csv. Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives. 
@@ -370,7 +387,7 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 	aes(date,total_per_cap,group=state,color=state)+
 	geom_line()+
 	theme(legend.position = 'none',
-								axis.text.x = element_text(angle = 90, vjust = .5))+
+				axis.text.x = element_text(angle = 90, vjust = .5))+
 	geom_label_repel(data=labels,aes(label=state,x=date+8),
 									 nudge_x=1,
 									 seed=0,
