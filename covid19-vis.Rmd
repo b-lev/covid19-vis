@@ -134,7 +134,7 @@ ggplot(comp.pc)+
 
 # World data
 
-This plot shows the spread of the virus over time across the world. We want the number of active cases  to drop to 0, the deaths to stay as low as possible obviously, and the recovered cases (blue) to climb high. Confirmed is a cumulative count of everyone that has tested positive. 
+This plot shows the spread of the virus over time across the world. We want the number of active cases  to drop to zero, the deaths to stay as low as possible, obviously, and the recovered cases to climb high. Confirmed is a cumulative count of everyone that has tested positive. 
 
 ```{r world, echo=FALSE,fig.width = 5,fig.height=3}
 
