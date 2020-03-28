@@ -120,13 +120,15 @@ ggplot(comp.pc)+
 	geom_line(data=template,linetype=2,color='grey')+
 	geom_text(data=gr.labels,aes(label=text,group=NA,x=x,y=y),color='dark grey')+
 	geom_text_repel(data=labels,aes(label=region),color='black',direction='x',seed =0)+
-	scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
+	scale_y_log10(breaks=round(filter(template,rate==2)$valpc,6),
+								# label=scales::label_percent()
+								)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
 	coord_cartesian(ylim=c(start_val,.002))+
-	labs(y='confirmed cases per capita',
-			 x=paste('Days since', 
+	labs(y='confirmed cases per capita (log scale)',
+			 x=paste0('Days since ', 
 			 				format(start_val*100,scientific=F,digits=4),
-			 				'of the population infected'))
+			 				'% of the population infected'))
 ```
 
 
@@ -172,6 +174,7 @@ ggplot(filter(tmp,region %in% worst)
 )+theme_gray(12)+
 	aes(date,val,group=c(region),color=region)+
 	scale_y_continuous(limits = c(0,NA),
+										 label=comma,
 										 breaks=pretty_breaks(8)	)+
 	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
 	geom_line()+geom_point(size=.5)+
@@ -196,7 +199,7 @@ ggplot(filter(tmp,region %in% worst)
 # World Fatality Rates
 
 Here is a plot of the fatility rate. It's really hard to tell whether this analysis makes sense given the unreliablity of the data overall. FWIW:
-	
+
 ```{r fatality, echo=FALSE}
 rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) %>% summarize(confirmed=sum(val)),
 										deaths %>%filter(date==max(date)) %>%  group_by(region) %>% summarize(deaths=sum(val)),
@@ -348,7 +351,7 @@ ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
 
 ```{r age,fig.height=3,fig.width=5}
 ma.demo<- tibble(demo=c('0-19','20-29', '30-39', '40-49', '50-59', '60-69', '70-'),
-					pop=c(1549659,831628,809392, 972104, 919120, 627497, 599347))
+								 pop=c(1549659,831628,809392, 972104, 919120, 627497, 599347))
 
 tmp<- select(ma.gov,date,contains('age_')) %>%
 	filter(date==max(date)) %>%
@@ -380,7 +383,7 @@ ggplot(ma.counties)+
 	scale_y_log10(label=comma)+
 	scale_x_date(breaks=pretty_breaks(8))+
 	geom_point()+geom_line()+
-	        annotation_logticks() +
+	annotation_logticks() +
 	labs(y='Count of Confirmed Cases (cumulative)',
 			 color=element_blank(),
 			 x="")
@@ -401,7 +404,7 @@ template<- expand.grid(day=0:18,rate=c(2,3,4,5,10)) %>%
 
 gr.labels<- template %>%group_by(region) %>%
 	filter(day==max(day)-1) %>% mutate(text=paste('every',rate,'\ndays'))
-	
+
 
 ggplot(ma.counties.f)+
 	aes(x=day,y=valpc,group=c(region),color=reorder(region,max_valpc))+
@@ -416,8 +419,8 @@ ggplot(ma.counties.f)+
 	labs(y='confirmed cases per capita in county',
 			 color="",
 			 x=paste0('Days since ', 
-			 				format(start_val*100,scientific=F,digits=4),
-			 				'% of the population infected'))+
+			 				 format(start_val*100,scientific=F,digits=4),
+			 				 '% of the population infected'))+
 	theme(legend.position = 'top')
 
 
@@ -453,18 +456,19 @@ labels<- group_by(tmp,type) %>%
 	top_n(5,val)
 
 ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
-	aes(date,val,group=c(state),color=state)+
+	aes(date,val,group=state,color=state)+
 	scale_y_continuous(breaks=pretty_breaks(8), limits = c(0,NA),	)+
-	scale_x_date(breaks=pretty_breaks(10),							 date_labels = "%b%d")+
+	scale_x_date(breaks=pretty_breaks(10),
+							 date_labels = "%b%d")+
 	geom_line()+geom_point()+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5),
 				panel.spacing = unit(2, "lines"))+
-	geom_text_repel(data=labels,
-									direction = 'x',
-									aes(label=state,x=date+3),
-									seed=0,
-									color='black')+
+	geom_text(data=labels,
+						aes(label=state,x=date+2),
+						color='black',
+						position = position_jitter(width = 2,height = .1,seed=1)
+	)+
 	facet_wrap(type~.,nrow=2,scales = 'free')+
 	labs(x="",y='')
 
@@ -508,7 +512,7 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 	geom_line()+
 	theme(legend.position = 'none',
 				axis.text.x = element_text(angle = 90, vjust = .5))+
-	geom_label_repel(data=labels,aes(label=state,x=date+8),
+	geom_text_repel(data=labels,aes(label=state,x=date+8),
 									 nudge_x=1,
 									 seed=0,
 									 direction='x')+
