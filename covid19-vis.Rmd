@@ -491,7 +491,7 @@ ggplot(tmp)+
 	aes(y=st.f,x=rate)+
 	geom_bar(stat='identity')+
 	scale_x_continuous(label=percent,breaks=pretty_breaks())+
-	geom_text(aes(label=confirmed+negative,x=round(rate+.15,1)),hjust=1)+
+	geom_text(aes(label=prettyNum(confirmed+negative,big.mark=','),x=round(rate+.15,1)),hjust=1)+
 	labs(x='COVID testing positive rate  (total tests)',y="State")
 
 
