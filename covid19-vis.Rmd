@@ -204,14 +204,14 @@ Here is a plot of the fatility rate. It's really hard to tell whether this analy
 rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) %>% summarize(confirmed=sum(val)),
 										deaths %>%filter(date==max(date)) %>%  group_by(region) %>% summarize(deaths=sum(val)),
 										by = c("region")) %>%
-	inner_join(recovered %>%filter(date==max(date)) %>%  group_by(region) %>%	summarize(recovered=sum(val)),
-						 by = c("region")) %>%
-	filter(region!='Cruise Ship' ) %>%
-	mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) %>%
+	# inner_join(recovered %>%filter(date==max(date)) %>%  group_by(region) %>%	summarize(recovered=sum(val)),
+						 # by = c("region")) %>%
+	# filter(region!='Cruise Ship' ) %>%
+	# mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) %>%
 	filter(deaths>0) %>% 
-	mutate(rate=deaths/(deaths+confirmed+recovered)) %>%  ungroup %>% 
+	mutate(rate=deaths/(deaths+confirmed)) %>%  ungroup %>% 
 	rowwise %>%
-	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed+recovered))) %>%  ungroup %>% 
+	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed))) %>%  ungroup %>% 
 	group_by(region) %>% mutate(min_ci=min(ci)) 
 
 ggplot(rate %>% filter(deaths>15))+
