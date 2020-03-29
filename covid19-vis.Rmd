@@ -76,7 +76,7 @@ active<- inner_join(
 covid<- bind_rows(active,tmp)
 
 
-start_val= 0.000008
+start_val= 0.00004
 
 
 ```
@@ -116,7 +116,7 @@ gr.labels=tibble(text=c('every\n2 days','every\n3 days','every\n4 days',
 ggplot(comp.pc)+
 	aes(x=day,y=valpc,group=c(region),color=region)+
 	theme(legend.position = "none")+
-	geom_line(size=1)+geom_point(size=1.1)+
+	geom_line(size=1)+geom_point(size=1.5)+
 	geom_line(data=template,linetype=2,color='grey')+
 	geom_text(data=gr.labels,aes(label=text,group=NA,x=x,y=y),color='dark grey')+
 	geom_text_repel(data=labels,aes(label=region),color='black',direction='x',seed =0)+
@@ -452,13 +452,13 @@ tmp<- covid %>% filter(region=='US',type=='deaths',val>100) %>%
 	select(date,val)  %>%
 	mutate(val.log=log(val),rn=row_number())
 # 
-tmp<- inner_join(	deaths %>% filter(region=='US',date>='2010-03-21'),
-	confirmed %>% filter(region=='US',date>='2010-03-21'),
-	by=c("province", "region", "Lat", "Long", "date"),
-	suffix=c('.d','.c') ) %>% 
-	mutate(val=val.d/(val.d+val.c)) %>%
-	mutate(val.log=log(val),rn=row_number())
-	
+# tmp<- inner_join(	deaths %>% filter(region=='US',date>='2020-03-21'),
+# 	confirmed %>% filter(region=='US',date>='2010-03-21'),
+# 	by=c("province", "region", "Lat", "Long", "date"),
+# 	suffix=c('.d','.c') ) %>% 
+# 	mutate(val=val.d/(val.d+val.c)) %>%
+# 	mutate(val.log=log(val),rn=row_number())
+# 	
 
 ggplot(tmp )+
 	aes(date,val,color='actual')+
