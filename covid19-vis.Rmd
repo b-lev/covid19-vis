@@ -451,6 +451,14 @@ Deaths in the US.
 tmp<- covid %>% filter(region=='US',type=='deaths',val>100) %>%
 	select(date,val)  %>%
 	mutate(val.log=log(val),rn=row_number())
+# 
+tmp<- inner_join(	deaths %>% filter(region=='US',date>='2010-03-21'),
+	confirmed %>% filter(region=='US',date>='2010-03-21'),
+	by=c("province", "region", "Lat", "Long", "date"),
+	suffix=c('.d','.c') ) %>% 
+	mutate(val=val.d/(val.d+val.c)) %>%
+	mutate(val.log=log(val),rn=row_number())
+	
 
 ggplot(tmp )+
 	aes(date,val,color='actual')+
