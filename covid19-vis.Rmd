@@ -291,6 +291,22 @@ ggplot()+
 	labs(y="confirmed cases in MA",x="",color=element_blank())
 ```
 
+Death rate in MA. 
+
+```{r ma.death,fig.height=3,fig.width=5}
+tmp<- ma.gov %>% filter(!is.na(Deaths)) %>%
+	select(date,Deaths)  %>%
+	mutate(val.log=log(Deaths),rn=row_number())
+
+ggplot(ma.gov %>% filter(!is.na(Deaths)))+
+	aes(date,Deaths,color='actual')+
+	scale_x_date(breaks="3 days",date_labels = "%m/%d")+
+	# scale_y_log10()+
+	geom_point()+geom_line()+
+	# geom_smooth(method='lm',aes(color='linear fit'))+
+	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
+	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))
+```
 
 The cumulative fraction of MA covid patients that are hospitalized.
 
@@ -425,7 +441,28 @@ ggplot(ma.counties.f)+
 
 
 ```
+
 # US States
+
+
+Deaths in the US.
+
+```{r us.deaths,fig.height=3,fig.width=5}
+tmp<- covid %>% filter(region=='US',type=='deaths',val>100) %>%
+	select(date,val)  %>%
+	mutate(val.log=log(val),rn=row_number())
+
+ggplot(tmp )+
+	aes(date,val,color='actual')+
+		scale_x_date(breaks="3 days",date_labels = "%m/%d")+
+	scale_y_continuous(breaks=pretty_breaks(10))+
+	geom_point(size=2)+geom_line(size=1)+
+	# geom_smooth(method='lm',aes(color='linear fit'))+
+	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
+	labs(y="Deaths in US",x="",color="")+
+	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))
+
+```
 
 (Based on https://covidtracking.com/api/states/daily.csv.)
 
@@ -505,7 +542,7 @@ This plots show how long it is taking each state to test its population, on a pe
 
 ## tests per capita
 labels=filter(testing,date==max(date)) %>% ungroup %>%
-	top_n(n=15,wt=total_per_cap)
+	top_n(n=25,wt=total_per_cap)
 
 ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 	aes(date,total_per_cap,group=state,color=state)+
