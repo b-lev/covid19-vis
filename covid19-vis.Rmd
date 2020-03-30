@@ -308,6 +308,8 @@ ggplot(ma.gov %>% filter(!is.na(Deaths)))+
 	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))
 ```
 
+
+
 The cumulative fraction of MA covid patients that are hospitalized.
 
 ```{r ma-hosp,fig.height=3,fig.width=5}
@@ -369,19 +371,35 @@ ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
 ma.demo<- tibble(demo=c('0-19','20-29', '30-39', '40-49', '50-59', '60-69', '70-'),
 								 pop=c(1549659,831628,809392, 972104, 919120, 627497, 599347))
 
-tmp<- select(ma.gov,date,contains('age_')) %>%
+ma.gov.deaths<- select(ma.gov,date,contains('age_')) %>%
 	filter(date==max(date)) %>%
 	pivot_longer(names_to = 'demo',names_prefix = "age_",
 							 values_to = 'val',
 							 values_drop_na = T,
 							 cols = starts_with('age_'))
-ggplot(inner_join(ma.demo,tmp,by='demo'))+
+ggplot(inner_join(ma.demo,ma.gov.deaths,by='demo'))+
 	aes(demo,val/pop)+
 	geom_bar(stat='identity')+
 	scale_y_continuous(label=percent,breaks = pretty_breaks())+
 	# theme(axis.text.x = element_text(angle=0,hjust=1))+
 	geom_text(aes(label=val,y=val/pop*.9),color='yellow')+
-	labs(x='age demographic',y='Fraction of that demo\'s population')
+	labs(x='age demographic',y='Fraction of that demo\'s population',title='MA Confirmed Cases')
+```
+
+```{r death-demo,fig.height=3,fig.width=5}
+
+
+ma.deaths<-suppressMessages(
+	read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/deaths.csv')
+	)%>%
+	mutate(date=mdy(date))
+
+ggplot(ma.deaths)+
+	aes(age,group=gender,fill=gender)+
+	geom_bar(position='stack')+
+	theme(legend.position = c(.2,.7))+
+	labs(title='MA deaths',x='age group',y='count',fill=element_blank())
+
 ```
 
 ```{r counties,fig.height=6,fig.width=5}
