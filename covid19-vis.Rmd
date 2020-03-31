@@ -28,6 +28,8 @@ suppressPackageStartupMessages(library(scales))
 suppressPackageStartupMessages(library(lubridate))
 suppressPackageStartupMessages(library(ggrepel))
 suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(tidyquant))
+
 theme_set(theme_gray(12))
 theme_update(legend.position='top')
 # read in JHU data
@@ -192,13 +194,13 @@ worst<- c(labels %>%
 						top_n(6,val) %>% 
 						pull(region) )
 
-ggplot(filter(tmp,region %in% worst)
-)+theme_gray(12)+
+ggplot(filter(tmp,region %in% worst))+theme_gray(12)+
 	aes(date,val,group=c(region),color=region)+
 	scale_y_continuous(limits = c(0,NA),
 										 label=comma,
 										 breaks=pretty_breaks(8)	)+
-	scale_x_date(breaks=pretty_breaks(10),limits = c(min(tmp$date),max(tmp$date)+4))+
+	scale_x_date(breaks=pretty_breaks(10),
+							 limits = c(min(tmp$date),max(tmp$date)+4))+
 	geom_line()+geom_point(size=.5)+
 	theme(legend.position="none")+
 	facet_wrap(~type,scales = 'free',ncol=2)+
@@ -206,12 +208,12 @@ ggplot(filter(tmp,region %in% worst)
 				axis.text.x = element_text(angle = 90, vjust = .5))+
 	labs(x="",y='count')+
 	geom_text_repel(data=labels %>%	filter(	(region %in% worst)| region=='US'),
-									direction='y',segment.color='dark grey',
-									nudge_x =0,
+									direction='y',
+									segment.color='dark grey',
 									hjust=0,
 									seed=0,
-									aes(label=region,x=date),color='black')
-
+									aes(label=region,x=date),color='black')+
+		coord_x_date(xlim=c(min(tmp$date),max(tmp$date+18)))
 
 
 
@@ -366,21 +368,14 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 ```
 
 
-```{r sheldon,fig.height=3,fig.width=5}
-tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta)) 
-# 
-# ggplot(ma.testing)+
-# 	aes(date,delta,group=result,color=result)+
+# ```{r sheldon,fig.height=3,fig.width=5}
+# tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta)) 
+# ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
 # 	geom_point()+geom_line()+
-# 	scale_y_log10(limits=c(1,NA))+
-# 	labs(x='',y='Daily test results in MA')
-
-ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
-	geom_point()+geom_line()+
-	scale_y_continuous(limits=c(0,NA),
-										 label=percent,breaks = pretty_breaks())+
-	scale_x_date(breaks=pretty_breaks())+
-	labs(x="",y="Fraction of positive daily tests in MA")
+# 	scale_y_continuous(limits=c(0,NA),
+# 										 label=percent,breaks = pretty_breaks())+
+# 	scale_x_date(breaks=pretty_breaks())+
+# 	labs(x="",y="Fraction of positive daily tests in MA")
 ```
 
 ```{r age,fig.height=3,fig.width=5}
@@ -411,16 +406,19 @@ ma.deaths<-suppressMessages(
 	mutate(date=mdy(date))
 
 ggplot(ma.deaths)+
-	aes(age,group=gender,fill=gender)+
+	aes(reorder(age,as.integer(str_sub(age,end=-2))),group=gender,fill=gender)+
 	geom_bar(position='stack')+
+	scale_y_continuous(breaks = pretty_breaks(10))+
 	theme(legend.position = c(.2,.7))+
-	labs(title='MA deaths',x='age group',y='count',fill=element_blank())
-
+	labs(title='MA Covid deaths',x='age group',y='count',fill=element_blank())
+	
+	
+	
 ```
 
 ```{r counties,fig.height=6,fig.width=5}
 
-ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes ,	17352	\nNantucket 	,11327")
+ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes and Nantucket 	,28679")
 
 ma.counties<- select(ma.gov, c(date,Barnstable,	Berkshire,	Bristol,'Dukes and Nantucket',	Essex,	Franklin,	Hampden	,Hampshire, Middlesex, Norfolk, Plymouth,Suffolk, Worcester))  %>% 
 	gather(region,val,-date) %>% na.omit() %>%
