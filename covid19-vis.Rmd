@@ -161,6 +161,22 @@ ggplot(comp.pc)+
 This plot shows the spread of the virus over time across the world. We want the number of active cases  to drop to zero, the deaths to stay as low as possible, obviously, and the recovered cases to climb high. Confirmed is a cumulative count of everyone that has tested positive. 
 
 ```{r world, echo=FALSE,fig.width = 5,fig.height=3}
+ggplot(covid %>%	 	group_by(date,type) %>% 
+			 	summarize(val=sum(val)) %>%
+			 	filter(type!='confirmed'))+
+	aes(date,val,fill=reorder(type,desc(type)))+
+	geom_bar(stat='identity')+
+	scale_y_continuous(label=comma,breaks=pretty_breaks(),
+										 sec.axis = sec_axis(~./7771316390,labels = percent))+
+		labs(x=element_blank(),y=element_blank(),color=element_blank(),
+				 fill=element_blank())+
+	theme(legend.position=c(.2,.8))
+```
+
+Here's another view of the same data.
+
+```{r, echo=FALSE,fig.width = 5,fig.height=3}
+
 
 # All lines for the world
 ggplot(covid %>% 
@@ -170,7 +186,7 @@ ggplot(covid %>%
 	geom_line()+geom_point(size=.5)+
 	scale_y_continuous(label=comma,breaks=pretty_breaks(),
 										 sec.axis = sec_axis(~./7771316390,labels = percent))+
-	theme(legend.position = c(.2,.8))+
+	theme(legend.position = c(.2,.7))+
 	scale_x_date(breaks=pretty_breaks())+
 	labs(x=element_blank(),y=element_blank(),color=element_blank())
 ```
@@ -323,7 +339,8 @@ ggplot(ma.gov %>% filter(!is.na(Deaths)))+
 	geom_point()+geom_line()+
 	# geom_smooth(method='lm',aes(color='linear fit'))+
 	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
-	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))
+	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))+
+	labs(color=element_blank())
 ```
 
 
@@ -368,7 +385,7 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 ```
 
 
-# ```{r sheldon,fig.height=3,fig.width=5}
+```{r sheldon,fig.height=3,fig.width=5}
 # tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta)) 
 # ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
 # 	geom_point()+geom_line()+
