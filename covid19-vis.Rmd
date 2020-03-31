@@ -110,8 +110,8 @@ template<- expand.grid(day=0:30,rate=c(2,3,4,5,10)) %>%
 
 gr.labels=tibble(text=c('every\n2 days','every\n3 days','every\n4 days',
 												'every\n5 days','every\n10 days'),
-								 x=c(15,24,32,32,32),
-								 y=c(.0018,.0018,.0018,.0006,.00007))
+								 x=c(10,16,22,28,30),
+								 y=c(.002,.002,.002,.002,.0003))
 
 ggplot(comp.pc)+
 	aes(x=day,y=valpc,group=c(region),color=region)+
@@ -331,10 +331,10 @@ MA is performing an increasing (but still inadequate) number of tests per day.
 
 
 ```{r ma-testing, fig.height=3,fig.width=5}
-ma.testing<-select(ma.gov,date,contains("Lab_")) %>%
+ma.testing<-select(ma.gov,date,contains("Test_")) %>%
 	gather(var,val,-date) %>% 
 	na.omit %>%
-	mutate(result=ifelse(str_ends(var,"_pos"),"pos","neg")) %>%
+	mutate(result=ifelse(str_ends(var,"_positive"),"pos","neg")) %>%
 	group_by(result,date) %>%
 	summarize(val=sum(val)) %>%
 	filter(val>0) %>%
@@ -492,7 +492,7 @@ ggplot(tmp )+
 
 (Based on https://covidtracking.com/api/states/daily.csv.)
 
-````{r states,fig.height=9,fig.width=5}
+````{r states,fig.height=9,fig.width=7}
 ct<- 
 	suppressMessages(read_csv('https://covidtracking.com/api/states/daily.csv'))  %>%
 	group_by(state) %>% arrange(state,date) %>%
@@ -527,10 +527,10 @@ ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5),
 				panel.spacing = unit(2, "lines"))+
-	geom_text(data=labels,
-						aes(label=state,x=date+2),
+	geom_label_repel(data=labels,direction='x',label.padding = .05,label.size = 0,
+						aes(label=state,x=date+5),
 						color='black',
-						position = position_jitter(width = 2,height = .1,seed=1)
+						position = position_jitter(width = 5,height = .1,seed=1)
 	)+
 	facet_wrap(type~.,nrow=2,scales = 'free')+
 	labs(x="",y='')
@@ -588,16 +588,16 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 
 ```{r weekday-drop}
 # 
-tmp<- ct %>% filter(!is.na(death),death>0) %>% group_by(date,day=paste(wday(date),weekdays(date))) %>% summarize(val=sum(death)) %>%
-	ungroup %>%
-	mutate(delta=val-lag(val,1),ratio=delta/lag(delta,1))
-
-ggplot(	tmp)+
-	aes(day,ratio)+
-	scale_x_discrete()+
-	scale_y_continuous(limits = c(0,NA))+
-# geom_boxplot(notch=F)+
-geom_point(size=2)
+# tmp<- ct %>% filter(!is.na(death),death>0) %>% group_by(date,day=paste(wday(date),weekdays(date))) %>% summarize(val=sum(death)) %>%
+# 	ungroup %>%
+# 	mutate(delta=val-lag(val,1),ratio=delta/lag(delta,1))
+# 
+# ggplot(	tmp)+
+# 	aes(day,ratio)+
+# 	scale_x_discrete()+
+# 	scale_y_continuous(limits = c(0,NA))+
+# 	# geom_boxplot(notch=F)+
+# 	geom_point(size=2)
 
 ```
 
