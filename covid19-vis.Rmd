@@ -76,10 +76,32 @@ active<- inner_join(
 covid<- bind_rows(active,tmp)
 
 
+
+# data scrapped manually from mass.gov. very different than JHU
+ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
+	mutate(date=mdy(date),
+				 val=confirmed,
+				 val.log=log(val),
+				 rn=row_number()-2)%>% 
+	mutate(delta=val-lag(val))
+
+ct<- 
+	suppressMessages(read_csv('https://covidtracking.com/api/states/daily.csv'))  %>%
+	group_by(state) %>% arrange(state,date) %>%
+	mutate(date=ymd(date)) %>%
+	mutate(total=positive+negative) %>%
+	select(-c(dateChecked))
+
 start_val= 0.00004
 
-
 ```
+Results below include up to `r max(ma.gov$date)` for MA 
+[<a href="https://github.com/b-lev/massachusetts-covid19-report-archive">src</a>],
+`r max(covid$date)` for countries 
+[<a href="https://github.com/CSSEGISandData/COVID-19">src</a>], 
+and `r max(ct$date)` for US states 
+[<a href="https://covidtracking.com">src</a>].
+
 Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 0" is approx `r format(start_val*100,scientific=F,digits=4)`% of the country's population. This is a log scale, and so exponential/viral growth is a straight line.  The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.  
 ```{r}
 
@@ -248,13 +270,7 @@ covid.fit<- function(actual,last=7,pred=7){
 	return(fit)
 }
 
-# data scrapped manually from mass.gov. very different than JHU
-ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
-	mutate(date=mdy(date),
-				 val=confirmed,
-				 val.log=log(val),
-				 rn=row_number()-2)%>% 
-	mutate(delta=val-lag(val))
+
 
 # plot new cases per day
 ggplot(ma.gov %>% select(date,val,delta) %>%na.omit)+
@@ -493,12 +509,7 @@ ggplot(tmp )+
 (Based on https://covidtracking.com/api/states/daily.csv.)
 
 ````{r states,fig.height=9,fig.width=7}
-ct<- 
-	suppressMessages(read_csv('https://covidtracking.com/api/states/daily.csv'))  %>%
-	group_by(state) %>% arrange(state,date) %>%
-	mutate(date=ymd(date)) %>%
-	mutate(total=positive+negative) %>%
-	select(-c(dateChecked))
+
 
 state.pops<-suppressMessages(read_csv('state-pop-census.csv')) %>%
 	mutate(state=state.abb[match(state_name,state.name)]) %>%
