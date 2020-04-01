@@ -362,7 +362,7 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 
 ```
 
-MA is performing an increasing (but still inadequate) number of tests per day. 
+MA is performing an inadequate number of tests per day. 
 
 
 ```{r ma-testing, fig.height=3,fig.width=5}
