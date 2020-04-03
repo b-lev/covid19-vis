@@ -7,8 +7,8 @@ knit: (function(input_file, encoding) {
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: ""
 output:
- rmarkdown::html_document:
- toc: true
+ html_document:
+ toc: True
  theme: cosmo
 ---
 
@@ -434,9 +434,10 @@ ggplot(ma.deaths)+
 
 ```{r counties,fig.height=6,fig.width=5}
 
-ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes and Nantucket 	,28679")
+ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes, 17352\nNantucket,11327")
 
-ma.counties<- select(ma.gov, c(date,Barnstable,	Berkshire,	Bristol,'Dukes and Nantucket',	Essex,	Franklin,	Hampden	,Hampshire, Middlesex, Norfolk, Plymouth,Suffolk, Worcester))  %>% 
+ma.counties<- select(ma.gov, c(date,Barnstable,	Berkshire,	Bristol,Dukes,
+Nantucket,	Essex,	Franklin,	Hampden	,Hampshire, Middlesex, Norfolk, Plymouth,Suffolk, Worcester))  %>% 
 	gather(region,val,-date) %>% na.omit() %>%
 	inner_join(ma.county.pop,by='region') %>%
 	filter(val>0) %>%
