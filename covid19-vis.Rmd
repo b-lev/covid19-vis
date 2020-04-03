@@ -153,7 +153,8 @@ ggplot(comp.pc)+
 			 				 format(start_val*100,scientific=F,digits=4),
 			 				 '% of the population infected'))
 ```
-# Massachusetts Data 
+
+## Massachusetts Data 
 
 MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. 
 
