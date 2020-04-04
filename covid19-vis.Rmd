@@ -1,20 +1,15 @@
 ---
 title: "COVis: covid-19 Visualizations"
-knit: (function(input_file, encoding) {
-  out_dir <- 'docs';
-  rmarkdown::render(input_file,
- encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: ""
 output:
- html_document:
- toc: True
- theme: cosmo
+  github_document:
+  toc: true
+  theme: cosmo
 ---
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F,cache=F,autodep = T)
+knitr::opts_chunk$set(echo = F,cache=T,autodep = T)
 
 ```
 (Source code: https://github.com/b-lev/covid19-vis)
@@ -102,6 +97,8 @@ Results below include up to `r max(ma.gov$date)` for MA
 [<a href="https://github.com/CSSEGISandData/COVID-19">src</a>], 
 and `r max(ct$date)` for US states 
 [<a href="https://covidtracking.com">src</a>].
+
+Related site: <a href=https://www.wmasscovid.com>https://www.wmasscovid.com</a>.
 
 Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 0" is approx `r format(start_val*100,scientific=F,digits=4)`% of the country's population. This is a log scale, and so exponential/viral growth is a straight line.  The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.  
 ```{r}
