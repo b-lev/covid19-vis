@@ -1,5 +1,5 @@
 ---
-title: "COVis: covid-19 Visualizations"
+title: "<i>COVis:</i> COVID-19 Visualizations"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
@@ -7,9 +7,10 @@ knit: (function(input_file, encoding) {
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: ""
 output:
- html_document:
- toc: True
- theme: cosmo
+  html_document:
+    toc: true
+    theme: cosmo
+
 ---
 
 
@@ -156,7 +157,7 @@ ggplot(comp.pc)+
 			 				 '% of the population infected'))
 ```
 
-## Massachusetts Data 
+# Massachusetts Data 
 
 MA data from https://github.com/b-lev/massachusetts-covid19-report-archive. 
 
@@ -383,7 +384,7 @@ ggplot(ma.counties.f)+
 
 ```
 
-# US States
+# US States Data
 
 
 Deaths in the US.
@@ -456,7 +457,7 @@ ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
 
 ```
 
-# US Testing Statistics
+## US Testing Statistics
 
 Testing in each state.  Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives.  (Based on https://covidtracking.com/api/states/daily.csv.)
 
@@ -601,7 +602,7 @@ ggplot(filter(tmp,region %in% worst))+theme_gray(12)+
 ```
 
 
-# World Fatality Rates
+## World Fatality Rates
 
 Here is a plot of the fatility rate. It's really hard to tell whether this analysis makes sense given the unreliablity of the data overall. FWIW:
 
