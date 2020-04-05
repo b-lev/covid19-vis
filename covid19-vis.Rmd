@@ -3,14 +3,14 @@ title: "<i>COVis:</i> COVID-19 Visualizations"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
- encoding=encoding,
- output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+  encoding=encoding, output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: ""
 output:
   html_document:
     toc: true
     theme: cosmo
-
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -20,7 +20,6 @@ knitr::opts_chunk$set(echo = F,cache=F,autodep = T)
 ```
 (Source code: https://github.com/b-lev/covid19-vis)
 
-# Main plot
 
 ```{r init, echo=FALSE, include=FALSE}
 suppressPackageStartupMessages(library(tidyverse))
@@ -94,7 +93,7 @@ ct<-
 	mutate(total=positive+negative) %>%
 	select(-c(dateChecked))
 
-start_val= 0.00004
+start_val= 0.0001
 
 ```
 Results below include up to `r max(ma.gov$date)` for MA 
@@ -105,6 +104,8 @@ and `r max(ct$date)` for US states
 [<a href="https://covidtracking.com">src</a>].
 
 Related site: <a href=https://www.wmasscovid.com>https://www.wmasscovid.com</a>
+
+# Main plot
 
 Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 0" is approx `r format(start_val*100,scientific=F,digits=4)`% of the country's population. This is a log scale, and so exponential/viral growth is a straight line.  The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.  
 ```{r}
@@ -136,8 +137,8 @@ template<- expand.grid(day=0:30,rate=c(2,3,4,5,10)) %>%
 
 gr.labels=tibble(text=c('every\n2 days','every\n3 days','every\n4 days',
 												'every\n5 days','every\n10 days'),
-								 x=c(10,16,22,28,30),
-								 y=c(.002,.002,.002,.002,.0003))
+								 x=c(8,13,18,22,22),
+								 y=c(.002,.002,.002,.002,.0004))
 
 ggplot(comp.pc)+
 	aes(x=day,y=valpc,group=c(region),color=region)+
@@ -150,7 +151,7 @@ ggplot(comp.pc)+
 								# label=scales::label_percent()
 	)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
-	coord_cartesian(ylim=c(start_val,.002))+
+	coord_cartesian(ylim=c(start_val,max(comp.pc$valpc)))+
 	labs(y='confirmed cases per capita (log scale)',
 			 x=paste0('Days since ', 
 			 				 format(start_val*100,scientific=F,digits=4),
@@ -187,6 +188,7 @@ ggplot(ma.gov %>% select(date,val,delta) %>%na.omit)+
 	aes(date,delta)+
 	geom_bar(stat="identity")+
 	scale_y_continuous(breaks=pretty_breaks(10))+
+	scale_x_date(breaks="1 weeks",date_labels = "%b-%d")+
 	labs(y="new cases in MA per day",x=element_blank())
 
 # adjust "rn>0" to fit to different parts of the data
@@ -212,9 +214,9 @@ ggplot()+
 						aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
-	scale_x_date(breaks=pretty_breaks(5))+
+	scale_x_date(breaks="1 weeks",date_labels = "%b-%d")+
 	theme(legend.position = c(.2,.8))+
-	labs(y="confirmed cases in MA",x="",color=element_blank())
+	labs(y="MA confirmed cases",x="",color=element_blank())
 ```
 
 Death rate in MA. 
@@ -226,13 +228,14 @@ tmp<- ma.gov %>% filter(!is.na(Deaths)) %>%
 
 ggplot(ma.gov %>% filter(!is.na(Deaths)))+
 	aes(date,Deaths,color='actual')+
-	scale_x_date(breaks="3 days",date_labels = "%m/%d")+
-	# scale_y_log10()+
+	scale_x_date(breaks="3 days",date_labels = "%b-%d")+
+		theme(legend.position = c(.2,.8))+
+		scale_y_continuous(breaks=pretty_breaks(5),label=comma,
+											 sec.axis = dup_axis())+
 	geom_point()+geom_line()+
-	# geom_smooth(method='lm',aes(color='linear fit'))+
 	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
 	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))+
-	labs(color=element_blank())
+	labs(color=element_blank(),y="MA Deaths")
 ```
 
 
@@ -248,6 +251,7 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 	geom_point()+geom_line()+
 	scale_y_continuous(label=percent,limits=c(0,NA),
 										 breaks=pretty_breaks(10))+
+	scale_x_date(breaks="1 weeks",date_labels = "%b-%d")+
 	labs(y="hospitalization in MA",
 			 x=element_blank())
 
@@ -271,7 +275,7 @@ ma.testing<-select(ma.gov,date,contains("Test_")) %>%
 ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 	geom_bar(stat='identity',position = 'stack',width=1,color='black')+
 	scale_y_continuous(breaks=pretty_breaks())+
-	scale_x_date(breaks=pretty_breaks())+
+	scale_x_date(breaks="3 days",date_labels = "%b-%d")+
 	labs(y="Tests in MA per day")
 
 ```
@@ -303,7 +307,7 @@ ggplot(inner_join(ma.demo,ma.gov.deaths,by='demo'))+
 	scale_y_continuous(label=percent,breaks = pretty_breaks())+
 	# theme(axis.text.x = element_text(angle=0,hjust=1))+
 	geom_text(aes(label=val,y=val/pop*.9),color='yellow')+
-	labs(x='age demographic',y='Fraction of that demo\'s population',title='MA Confirmed Cases')
+	labs(x='Age Demographic',y='Fraction of that demo\'s population',title='MA Confirmed Cases')
 ```
 
 ```{r death-demo,fig.height=3,fig.width=5}
@@ -314,18 +318,29 @@ ma.deaths<-suppressMessages(
 )%>%
 	mutate(date=mdy(date))
 
-ggplot(ma.deaths)+
+ggplot(ma.deaths )+
 	aes(reorder(age,as.integer(str_sub(age,end=-2))),group=gender,fill=gender)+
 	geom_bar(position='stack')+
 	scale_y_continuous(breaks = pretty_breaks(10))+
 	theme(legend.position = c(.2,.7))+
 	labs(title='MA Covid deaths',x='age group',y='count',fill=element_blank())
-	
-	
-	
 ```
 
-```{r counties,fig.height=6,fig.width=5}
+```{r death-preex,fig.height=4,fig.width=5}
+
+ggplot(ma.deaths%>% 
+			 	mutate(preexisting=factor(preexisting,levels = c('Unknown','No','Yes'))))+
+	aes(reorder(age,as.integer(str_sub(age,end=-2))),
+			group=preexisting,
+			fill=preexisting,
+			)+
+	geom_bar(position='fill')+
+	scale_y_continuous(breaks = pretty_breaks(5),label=percent)+
+	theme(legend.position = "top")+
+	labs(title='MA Covid deaths',x='age group',y='Percentage',fill="Preexisting Condition")
+```
+
+```{r counties,fig.height=6,fig.width=6}
 
 ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes, 17352\nNantucket,11327")
 
@@ -339,14 +354,14 @@ Nantucket,	Essex,	Franklin,	Hampden	,Hampshire, Middlesex, Norfolk, Plymouth,Suf
 ggplot(ma.counties)+
 	aes(date,val,group=region,color=reorder(region,desc(val)))+
 	scale_y_log10(label=comma)+
-	scale_x_date(breaks=pretty_breaks(8))+
+	scale_x_date(date_breaks="1 week")+
 	geom_point()+geom_line()+
 	annotation_logticks() +
 	labs(y='Count of Confirmed Cases (cumulative)',
 			 color=element_blank(),
 			 x="")
 
-start_val=4e-05
+start_val=8e-05
 
 ma.counties.f<- ma.counties%>% ungroup %>% rowwise %>%
 	mutate( delta=abs(start_val-valpc)) %>%
@@ -361,17 +376,20 @@ template<- expand.grid(day=0:18,rate=c(2,3,4,5,10)) %>%
 	mutate(region=paste(rate),valpc=start_val*2**(day/rate))
 
 gr.labels<- template %>%group_by(region) %>%
-	filter(day==max(day)-1) %>% mutate(text=paste('every',rate,'\ndays'))
+	filter(day==max(day)-1) %>% mutate(text=paste('every',rate,'days'))
 
 
-ggplot(ma.counties.f)+
+ma.counties.f <- mutate(ma.counties.f,lgpop=ifelse(pop<500000,'Small pop.','Large pop.'))
+
+ggplot(ma.counties.f %>% filter(lgpop=='Small pop.'))+
 	aes(x=day,y=valpc,group=c(region),color=reorder(region,max_valpc))+
 	theme(legend.position = "none")+
 	geom_line(size=1)+geom_point(size=1.1)+
 	geom_line(data=template,linetype=2,color='grey')+
 	geom_text(data=gr.labels,aes(label=text,group=NA),color='dark grey')+
 	# geom_text_repel(data=labels,aes(label=var),color='black',direction='x',seed =0)+
-	scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
+	# scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
+	scale_y_log10(label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
 	# coord_cartesian(ylim=c(start_val,.01))+
 	labs(y='confirmed cases per capita in county',
@@ -381,7 +399,23 @@ ggplot(ma.counties.f)+
 			 				 '% of the population infected'))+
 	theme(legend.position = 'top')
 
-
+ggplot(ma.counties.f %>% filter(lgpop!='Small pop.'))+
+	aes(x=day,y=valpc,group=c(region),color=reorder(region,max_valpc))+
+	theme(legend.position = "none")+
+	geom_line(size=1)+geom_point(size=1.1)+
+	geom_line(data=template,linetype=2,color='grey')+
+	geom_text(data=gr.labels,aes(label=text,group=NA),color='dark grey')+
+	# geom_text_repel(data=labels,aes(label=var),color='black',direction='x',seed =0)+
+	# scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
+	scale_y_log10(label=percent)+
+	scale_x_continuous(breaks=pretty_breaks(10))+
+	# coord_cartesian(ylim=c(start_val,.01))+
+	labs(y='confirmed cases per capita in county',
+			 color="",
+			 x=paste0('Days since ', 
+			 				 format(start_val*100,scientific=F,digits=4),
+			 				 '% of the population infected'))+
+	theme(legend.position = 'top')
 ```
 
 # US States Data
@@ -389,7 +423,7 @@ ggplot(ma.counties.f)+
 
 Deaths in the US.
 
-```{r us.deaths,fig.height=3,fig.width=5}
+```{r us.deaths,fig.height=4,fig.width=5}
 tmp<- covid %>% filter(region=='US',type=='deaths',val>100) %>%
 	select(date,val)  %>%
 	mutate(val.log=log(val),rn=row_number())
@@ -404,12 +438,12 @@ tmp<- covid %>% filter(region=='US',type=='deaths',val>100) %>%
 
 ggplot(tmp )+
 	aes(date,val,color='actual')+
-	scale_x_date(breaks="3 days",date_labels = "%m/%d")+
+	scale_x_date(breaks="3 days",date_labels = "%b-%d")+
 	scale_y_continuous(breaks=pretty_breaks(10))+
 	geom_point(size=2)+geom_line(size=1)+
 	# geom_smooth(method='lm',aes(color='linear fit'))+
 	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
-	labs(y="Deaths in US",x="",color="")+
+	labs(y="Deaths in the US",x="",color="")+
 	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))
 
 ```
@@ -446,7 +480,7 @@ ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5),
 				panel.spacing = unit(2, "lines"))+
-	geom_label_repel(data=labels,direction='x',label.padding = .05,label.size = 0,
+	geom_label_repel(data=labels,direction='x',label.padding = .01,label.size = 0,
 						aes(label=state,x=date+5),
 						color='black',
 						position = position_jitter(width = 5,height = .1,seed=1)
@@ -459,26 +493,26 @@ ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
 
 ## US Testing Statistics
 
-Testing in each state.  Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives.  (Based on https://covidtracking.com/api/states/daily.csv.)
+<!-- Testing in each state.  Sometimes, health care workers are tested, to be sure they are not infected. That is one explanation for why some states show many negatives.  (Based on https://covidtracking.com/api/states/daily.csv.) -->
 
 
-```{r testing, fig.height=7}
+<!-- ```{r testing, fig.height=7} -->
 
 
-tmp<- filter(testing,date==max(date))  %>%
-	mutate(rate=confirmed/(confirmed+negative))
-tmp<- mutate(tmp,	 st.f=factor(state,levels =tmp$state[order(tmp$rate)]))
+<!-- tmp<- filter(testing,date==max(date))  %>% -->
+<!-- 	mutate(rate=confirmed/(confirmed+negative)) -->
+<!-- tmp<- mutate(tmp,	 st.f=factor(state,levels =tmp$state[order(tmp$rate)])) -->
 
-ggplot(tmp)+
-	aes(y=st.f,x=rate)+
-	geom_bar(stat='identity')+
-	scale_x_continuous(label=percent,breaks=pretty_breaks())+
-	geom_text(aes(label=prettyNum(confirmed+negative,big.mark=','),x=round(rate+.15,1)),hjust=1)+
-	labs(x='COVID testing positive rate  (total tests)',y="State")
+<!-- ggplot(tmp)+ -->
+<!-- 	aes(y=st.f,x=rate)+ -->
+<!-- 	geom_bar(stat='identity')+ -->
+<!-- 	scale_x_continuous(label=percent,breaks=pretty_breaks())+ -->
+<!-- 	geom_text(aes(label=prettyNum(confirmed+negative,big.mark=','),x=round(rate+.15,1)),hjust=1)+ -->
+<!-- 	labs(x='COVID testing positive rate  (total tests)',y="State") -->
 
 
 
-```
+<!-- ``` -->
 
 This plots show how long it is taking each state to test its population, on a per capita basis. 
 (I'm assuming, optimistically, that the test had not be given to the same person twice.)
@@ -494,8 +528,9 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 	geom_line()+
 	theme(legend.position = 'none',
 				axis.text.x = element_text(angle = 90, vjust = .5))+
-	geom_text_repel(data=labels,aes(label=state,x=date+8),
+	geom_text_repel(data=labels,aes(label=state,x=date+8),box.padding = .01,
 									nudge_x=1,
+									
 									seed=0,
 									direction='x')+
 	scale_x_date(breaks=pretty_breaks(10))+
@@ -526,7 +561,7 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 
 This plot shows the spread of the virus over time across the world. We want the number of active cases  to drop to zero, the deaths to stay as low as possible, obviously, and the recovered cases to climb high. Confirmed is a cumulative count of everyone that has tested positive. 
 
-```{r world, echo=FALSE,fig.width = 5,fig.height=3}
+```{r world, echo=FALSE,fig.width = 6,fig.height=3}
 ggplot(covid %>%	 	group_by(date,type) %>% 
 			 	summarize(val=sum(val)) %>%
 			 	filter(type!='confirmed'))+
@@ -541,7 +576,7 @@ ggplot(covid %>%	 	group_by(date,type) %>%
 
 Here's another view of the same data.
 
-```{r, echo=FALSE,fig.width = 5,fig.height=3}
+```{r, echo=FALSE,fig.width = 6,fig.height=3}
 
 
 # All lines for the world
@@ -551,7 +586,9 @@ ggplot(covid %>%
 	aes(date,val,group=type,color=type)+
 	geom_line()+geom_point(size=.5)+
 	scale_y_continuous(label=comma,breaks=pretty_breaks(),
-										 sec.axis = sec_axis(~./7771316390,labels = percent))+
+										 sec.axis = sec_axis(~./7771316390,
+										 										breaks=pretty_breaks(10),
+										 										labels = percent))+
 	theme(legend.position = c(.2,.7))+
 	scale_x_date(breaks=pretty_breaks())+
 	labs(x=element_blank(),y=element_blank(),color=element_blank())
@@ -559,7 +596,7 @@ ggplot(covid %>%
 
 These plots show how the numbers have grown over time in each country. All countries want to hit the bent curve that China has reported achieving. 
 
-```{r world2}
+```{r world2,fig.height=7,fig.width=8}
 
 tmp<- group_by(covid,region,type,date) %>% 
 	filter(val>0,date>='2020-01-20') %>%
@@ -590,6 +627,7 @@ ggplot(filter(tmp,region %in% worst))+theme_gray(12)+
 				axis.text.x = element_text(angle = 90, vjust = .5))+
 	labs(x="",y='count')+
 	geom_text_repel(data=labels %>%	filter(	(region %in% worst)| region=='US'),
+									box.padding =.1,
 									direction='y',
 									segment.color='dark grey',
 									hjust=0,
@@ -606,7 +644,7 @@ ggplot(filter(tmp,region %in% worst))+theme_gray(12)+
 
 Here is a plot of the fatility rate. It's really hard to tell whether this analysis makes sense given the unreliablity of the data overall. FWIW:
 
-```{r fatality, echo=FALSE,fig.width = 6,fig.height=4}
+```{r fatality, echo=FALSE,fig.width = 7,fig.height=5}
 rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) %>% summarize(confirmed=sum(val)),
 										deaths %>%filter(date==max(date)) %>%  group_by(region) %>% summarize(deaths=sum(val)),
 										by = c("region")) %>%
@@ -614,7 +652,7 @@ rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) 
 	# by = c("region")) %>%
 	# filter(region!='Cruise Ship' ) %>%
 	# mutate(region=ifelse(region=='Korea, South',"S.Korea",region)) %>%
-	filter(deaths>0) %>% 
+	filter(deaths>=50) %>% 
 	mutate(rate=deaths/(deaths+confirmed)) %>%  ungroup %>% 
 	rowwise %>%
 	mutate(ci=1.96*sqrt(rate*(1-rate)/(deaths+confirmed))) %>%  ungroup %>% 
@@ -627,7 +665,7 @@ ggplot(rate %>% filter(deaths>15))+
 	geom_text(aes(label=deaths,y=.001),color='yellow',hjust=0,angle=90)+
 	labs(x=element_blank(),y="fatality rate")+
 	theme(legend.position="none",
-				axis.text.x = element_text(angle = 90, vjust = .0,hjust=1))
+				axis.text.x = element_text(angle = 90, vjust = .5,hjust=1))
 
 ```
 
