@@ -280,28 +280,19 @@ ggplot(ma.testing)+aes(date,delta,group=result,fill=result)+
 
 ```
 
-
-```{r sheldon,fig.height=3,fig.width=5}
-# tmp<- ma.testing %>%pivot_wider(names_from = result,values_from=c(val,delta)) 
-# ggplot(tmp)+aes(date,delta_pos/(delta_pos+delta_neg))+
-# 	geom_point()+geom_line()+
-# 	scale_y_continuous(limits=c(0,NA),
-# 										 label=percent,breaks = pretty_breaks())+
-# 	scale_x_date(breaks=pretty_breaks())+
-# 	labs(x="",y="Fraction of positive daily tests in MA")
-```
-
 ```{r age,fig.height=3,fig.width=5}
-ma.demo<- tibble(demo=c('0-19','20-29', '30-39', '40-49', '50-59', '60-69', '70-'),
-								 pop=c(1549659,831628,809392, 972104, 919120, 627497, 599347))
+ma.demo<- tibble(demo=c('0-19','20-29', '30-39', '40-49', '50-59', '60-69', '70-79','80-'),
+								 decade=c('10s','20s','30s','40s','50s','60s','70s','80s+'),
+								 pop=c(1549659,831628,809392, 972104, 919120, 627497, 345853,253494))
 
-ma.gov.deaths<- select(ma.gov,date,contains('age_')) %>%
+ma.gov.confirmed<- select(ma.gov,date,contains('age_')) %>%
 	filter(date==max(date)) %>%
 	pivot_longer(names_to = 'demo',names_prefix = "age_",
 							 values_to = 'val',
 							 values_drop_na = T,
 							 cols = starts_with('age_'))
-ggplot(inner_join(ma.demo,ma.gov.deaths,by='demo'))+
+
+ggplot(inner_join(ma.demo,ma.gov.confirmed,by='demo'))+
 	aes(demo,val/pop)+
 	geom_bar(stat='identity')+
 	scale_y_continuous(label=percent,breaks = pretty_breaks())+
@@ -325,6 +316,27 @@ ggplot(ma.deaths )+
 	theme(legend.position = c(.2,.7))+
 	labs(title='MA Covid deaths',x='age group',y='count',fill=element_blank())
 ```
+
+
+```{r fatality-demo,fig.height=3,fig.width=5}
+
+tmp<- 
+	ma.deaths %>% 
+	mutate(decade=ifelse(age%in% c('100s','90s','80s'),'80s+',age)) %>%
+	group_by(decade) %>% summarize(deaths=n()) %>%
+	inner_join(ma.demo,by='decade')%>% 
+	inner_join(ma.gov.confirmed,by='demo')	 %>%
+	mutate(rate=deaths/val)
+
+
+ggplot(tmp )+
+	aes(reorder(demo,as.integer(str_sub(demo,end=2))),rate)+
+	geom_bar(stat='identity')+
+	scale_y_continuous(breaks = pretty_breaks(10),label=percent)+
+	theme(legend.position = c(.2,.7))+
+	labs(title='MA Covid fatality rate',x='age group',y='Fraction of cases',fill=element_blank())
+```
+
 
 ```{r death-preex,fig.height=4,fig.width=5}
 
@@ -424,17 +436,11 @@ ggplot(ma.counties.f %>% filter(lgpop!='Small pop.'))+
 Deaths in the US.
 
 ```{r us.deaths,fig.height=4,fig.width=5}
+
 tmp<- covid %>% filter(region=='US',type=='deaths',val>100) %>%
 	select(date,val)  %>%
 	mutate(val.log=log(val),rn=row_number())
-# 
-# tmp<- inner_join(	deaths %>% filter(region=='US',date>='2020-03-21'),
-# 	confirmed %>% filter(region=='US',date>='2010-03-21'),
-# 	by=c("province", "region", "Lat", "Long", "date"),
-# 	suffix=c('.d','.c') ) %>% 
-# 	mutate(val=val.d/(val.d+val.c)) %>%
-# 	mutate(val.log=log(val),rn=row_number())
-# 	
+
 
 ggplot(tmp )+
 	aes(date,val,color='actual')+
@@ -644,7 +650,7 @@ ggplot(filter(tmp,region %in% worst))+theme_gray(12)+
 
 Here is a plot of the fatility rate. It's really hard to tell whether this analysis makes sense given the unreliablity of the data overall. FWIW:
 
-```{r fatality, echo=FALSE,fig.width = 7,fig.height=5}
+```{r fatality, echo=FALSE,fig.width = 8,fig.height=5}
 rate<-  	inner_join(confirmed %>% filter(date==max(date)) %>%  group_by(region) %>% summarize(confirmed=sum(val)),
 										deaths %>%filter(date==max(date)) %>%  group_by(region) %>% summarize(deaths=sum(val)),
 										by = c("region")) %>%
