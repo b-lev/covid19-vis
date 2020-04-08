@@ -443,7 +443,7 @@ ggplot(ma.counties.f %>% filter(lgpop=='Small pop.'))+
 	# scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
 	scale_y_log10(label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
-	coord_cartesian(ylim=c(start_val,.005))+
+	coord_cartesian(ylim=c(start_val,.003))+
 	labs(y='confirmed cases per capita in county',
 			 color="",
 			 x=paste0('Days since ', 
@@ -461,7 +461,7 @@ ggplot(ma.counties.f %>% filter(lgpop!='Small pop.'))+
 	# scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
 	scale_y_log10(label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
-	coord_cartesian(ylim=c(start_val,.01))+
+	coord_cartesian(ylim=c(start_val,.005))+
 	labs(y='confirmed cases per capita in county',
 			 color="",
 			 x=paste0('Days since ', 
