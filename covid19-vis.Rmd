@@ -229,9 +229,9 @@ tmp<- ma.gov %>% filter(!is.na(Deaths)) %>%
 ggplot(ma.gov %>% filter(!is.na(Deaths)))+
 	aes(date,Deaths,color='actual')+
 	scale_x_date(breaks="3 days",date_labels = "%b-%d")+
-		theme(legend.position = c(.2,.8))+
-		scale_y_continuous(breaks=pretty_breaks(5),label=comma,
-											 sec.axis = dup_axis())+
+	theme(legend.position = c(.2,.8))+
+	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
+										 sec.axis = dup_axis())+
 	geom_point()+geom_line()+
 	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
 	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))+
@@ -299,6 +299,16 @@ ggplot(inner_join(ma.demo,ma.gov.confirmed,by='demo'))+
 	# theme(axis.text.x = element_text(angle=0,hjust=1))+
 	geom_text(aes(label=val,y=val/pop*.9),color='yellow')+
 	labs(x='Age Demographic',y='Fraction of that demo\'s population',title='MA Confirmed Cases')
+
+tmp<-ma.gov %>% select(date,contains("race_confirmed")) %>%
+	na.omit %>%
+	gather(var,val,-date) %>%
+	mutate(var=str_sub(var,start=16))
+
+ggplot(tmp)+aes(date,val,fill=reorder(var,desc(val)))+
+	geom_bar(stat='identity')+
+	theme(legend.position = 'right')+
+	labs(x="",y="Confirmed",fill=element_blank())
 ```
 
 To date, MA.gov has reported gender as "Female", "Male", or "unknown" only.
@@ -312,10 +322,10 @@ ma.deaths<-suppressMessages(
 	mutate(date=mdy(date))
 
 tmp<- bind_rows(ma.deaths %>% group_by(var=gender) %>% summarize(val=n())  %>% mutate(type='deaths'),
-					select(ma.gov,date,contains('Gender_'))  %>% filter(date==max(date)) %>%
-						select(-c('date')) %>%
-						gather(var,val) %>%
-						mutate(var=str_sub(var,start=8),type='confirmed') 
+								select(ma.gov,date,contains('Gender_'))  %>% filter(date==max(date)) %>%
+									select(-c('date')) %>%
+									gather(var,val) %>%
+									mutate(var=str_sub(var,start=8),type='confirmed') 
 )
 ggplot(tmp)+aes(var,val,group=var,fill=var)+
 	geom_bar(stat='identity')+
@@ -333,6 +343,18 @@ ggplot(ma.deaths )+
 	scale_y_continuous(breaks = pretty_breaks(10))+
 	theme(legend.position = c(.2,.7))+
 	labs(title='MA Covid deaths',x='age group',y='count',fill=element_blank())
+
+
+
+tmp<-ma.gov %>% select(date,contains("race_deaths")) %>%
+	na.omit %>%
+	gather(var,val,-date) %>%
+	mutate(var=str_sub(var,start=13))
+
+ggplot(tmp)+aes(date,val,fill=reorder(var,desc(val)))+
+	geom_bar(stat='identity')+
+	theme(legend.position = 'right')+
+	labs(x="",y="Deaths",fill=element_blank())
 ```
 
 
@@ -363,7 +385,7 @@ ggplot(ma.deaths%>%
 	aes(reorder(age,as.integer(str_sub(age,end=-2))),
 			group=preexisting,
 			fill=preexisting,
-			)+
+	)+
 	geom_bar(position='fill')+
 	scale_y_continuous(breaks = pretty_breaks(5),label=percent)+
 	theme(legend.position = "top")+
@@ -375,7 +397,7 @@ ggplot(ma.deaths%>%
 ma.county.pop<-read_csv("region,pop\nMiddlesex,	1614714\nWorcester ,	830839\nSuffolk ,	807252\nEssex ,	790638\nNorfolk ,	705388\nBristol ,	564022	\nPlymouth 	,518132	\nHampden ,	470406\nBarnstable ,	213413\nHampshire ,	161355	\nBerkshire ,	126348	\nFranklin ,	70963	\nDukes, 17352\nNantucket,11327")
 
 ma.counties<- select(ma.gov, c(date,Barnstable,	Berkshire,	Bristol,Dukes,
-Nantucket,	Essex,	Franklin,	Hampden	,Hampshire, Middlesex, Norfolk, Plymouth,Suffolk, Worcester))  %>% 
+															 Nantucket,	Essex,	Franklin,	Hampden	,Hampshire, Middlesex, Norfolk, Plymouth,Suffolk, Worcester))  %>% 
 	gather(region,val,-date) %>% na.omit() %>%
 	inner_join(ma.county.pop,by='region') %>%
 	filter(val>0) %>%
@@ -505,9 +527,9 @@ ggplot(tmp %>% filter(state %in% labels$state) %>% filter(!is.na(val)) )+
 				axis.text.x = element_text(angle = 90, vjust = .5),
 				panel.spacing = unit(2, "lines"))+
 	geom_label_repel(data=labels,direction='x',label.padding = .01,label.size = 0,
-						aes(label=state,x=date+5),
-						color='black',
-						position = position_jitter(width = 5,height = .1,seed=1)
+									 aes(label=state,x=date+5),
+									 color='black',
+									 position = position_jitter(width = 5,height = .1,seed=1)
 	)+
 	facet_wrap(type~.,nrow=2,scales = 'free')+
 	labs(x="",y='')
@@ -593,8 +615,8 @@ ggplot(covid %>%	 	group_by(date,type) %>%
 	geom_bar(stat='identity')+
 	scale_y_continuous(label=comma,breaks=pretty_breaks(),
 										 sec.axis = sec_axis(~./7771316390,labels = percent))+
-		labs(x=element_blank(),y=element_blank(),color=element_blank(),
-				 fill=element_blank())+
+	labs(x=element_blank(),y=element_blank(),color=element_blank(),
+			 fill=element_blank())+
 	theme(legend.position=c(.2,.8))
 ```
 
@@ -657,7 +679,7 @@ ggplot(filter(tmp,region %in% worst))+theme_gray(12)+
 									hjust=0,
 									seed=0,
 									aes(label=region,x=date),color='black')+
-		coord_x_date(xlim=c(min(tmp$date),max(tmp$date+18)))
+	coord_x_date(xlim=c(min(tmp$date),max(tmp$date+18)))
 
 
 
