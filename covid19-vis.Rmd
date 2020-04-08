@@ -413,7 +413,7 @@ ggplot(ma.counties)+
 			 color=element_blank(),
 			 x="")
 
-start_val=8e-05
+start_val=5e-04
 
 ma.counties.f<- ma.counties%>% ungroup %>% rowwise %>%
 	mutate( delta=abs(start_val-valpc)) %>%
@@ -423,7 +423,7 @@ ma.counties.f<- ma.counties%>% ungroup %>% rowwise %>%
 	mutate(day=row_number()-1,max_valpc=max(day))
 
 
-template<- expand.grid(day=0:18,rate=c(2,3,4,5,10)) %>%
+template<- expand.grid(day=0:14,rate=c(2,3,4,5,10)) %>%
 	as.tbl %>%
 	mutate(region=paste(rate),valpc=start_val*2**(day/rate))
 
@@ -443,7 +443,7 @@ ggplot(ma.counties.f %>% filter(lgpop=='Small pop.'))+
 	# scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
 	scale_y_log10(label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
-	# coord_cartesian(ylim=c(start_val,.01))+
+	coord_cartesian(ylim=c(start_val,.005))+
 	labs(y='confirmed cases per capita in county',
 			 color="",
 			 x=paste0('Days since ', 
@@ -461,7 +461,7 @@ ggplot(ma.counties.f %>% filter(lgpop!='Small pop.'))+
 	# scale_y_log10(breaks=filter(template,rate==2)$valpc,label=percent)+
 	scale_y_log10(label=percent)+
 	scale_x_continuous(breaks=pretty_breaks(10))+
-	# coord_cartesian(ylim=c(start_val,.01))+
+	coord_cartesian(ylim=c(start_val,.01))+
 	labs(y='confirmed cases per capita in county',
 			 color="",
 			 x=paste0('Days since ', 
