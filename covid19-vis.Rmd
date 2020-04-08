@@ -301,6 +301,8 @@ ggplot(inner_join(ma.demo,ma.gov.confirmed,by='demo'))+
 	labs(x='Age Demographic',y='Fraction of that demo\'s population',title='MA Confirmed Cases')
 ```
 
+To date, MA.gov has reported gender as "Female" or "Male" only.
+
 ```{r death-demo,fig.height=3,fig.width=5}
 
 
