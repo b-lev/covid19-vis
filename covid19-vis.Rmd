@@ -303,13 +303,29 @@ ggplot(inner_join(ma.demo,ma.gov.confirmed,by='demo'))+
 
 To date, MA.gov has reported gender as "Female" or "Male" only.
 
-```{r death-demo,fig.height=3,fig.width=5}
 
+```{r gender ,fig.height=3,fig.width=5}
 
 ma.deaths<-suppressMessages(
 	read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/deaths.csv')
 )%>%
 	mutate(date=mdy(date))
+
+tmp<- bind_rows(ma.deaths %>% group_by(var=gender) %>% summarize(val=n())  %>% mutate(type='deaths'),
+					select(ma.gov,date,contains('Gender_'))  %>% filter(date==max(date)) %>%
+						select(-c('date')) %>%
+						gather(var,val) %>%
+						mutate(var=str_sub(var,start=8),type='confirmed') 
+)
+ggplot(tmp)+aes(var,val,group=var,fill=var)+
+	geom_bar(stat='identity')+
+	theme(legend.position = 'none')+
+	labs(x='',y='Count',title='MA cases only')+
+	facet_wrap(~type,scales='free')
+
+```
+```{r death-demo,fig.height=3,fig.width=5}
+
 
 ggplot(ma.deaths )+
 	aes(reorder(age,as.integer(str_sub(age,end=-2))),group=gender,fill=gender)+
