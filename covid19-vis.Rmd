@@ -93,7 +93,6 @@ ct<-
 	mutate(total=positive+negative) %>%
 	select(-c(dateChecked))
 
-start_val= 0.0001
 
 ```
 Results below include up to `r max(ma.gov$date)` for MA 
@@ -104,59 +103,6 @@ and `r max(ct$date)` for US states
 [<a href="https://covidtracking.com">src</a>].
 
 Related site: <a href=https://www.wmasscovid.com>https://www.wmasscovid.com</a>
-
-# Main plot
-
-Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 0" is approx `r format(start_val*100,scientific=F,digits=4)`% of the country's population. This is a log scale, and so exponential/viral growth is a straight line.  The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.  
-```{r}
-
-
-comparison<- filter(covid,type %in% c('confirmed'))  %>%
-	group_by(region,date,type) %>%
-	summarize(val=sum(val)) %>%
-	group_by(region,type) %>%
-	mutate(day=row_number())%>%
-	filter( val>-10,region%in% c('Italy','US','S.Korea','Spain')) %>%
-	mutate(pop=ifelse(region=='Italy',  60462000,
-										ifelse(region=='US',  331003000,
-													 ifelse(region=='Spain',47007367	,
-													 			 ifelse(region=='S.Korea',  51269000)))))
-
-comp.pc<- comparison %>%  ungroup %>% rowwise %>%
-	mutate(valpc=val/pop, delta=abs(start_val-valpc)) %>%
-	ungroup %>% 
-	group_by(region) %>%
-	filter(day>=which.min(delta)) %>%
-	mutate(day=row_number()-1)
-
-labels<- comp.pc %>% group_by(region) %>% filter(day==max(day))
-
-template<- expand.grid(day=0:30,rate=c(2,3,4,5,10)) %>%
-	as.tbl %>%
-	mutate(region=paste(rate),valpc=start_val*2**(day/rate))
-
-gr.labels=tibble(text=c('every\n2 days','every\n3 days','every\n4 days',
-												'every\n5 days','every\n10 days'),
-								 x=c(8,13,18,22,22),
-								 y=c(.002,.002,.002,.002,.0004))
-
-ggplot(comp.pc)+
-	aes(x=day,y=valpc,group=c(region),color=region)+
-	theme(legend.position = "none")+
-	geom_line(size=1)+geom_point(size=1.5)+
-	geom_line(data=template,linetype=2,color='grey')+
-	geom_text(data=gr.labels,aes(label=text,group=NA,x=x,y=y),color='dark grey')+
-	geom_text_repel(data=labels,aes(label=region),color='black',direction='x',seed =0)+
-	scale_y_log10(breaks=round(filter(template,rate==2)$valpc,6),
-								# label=scales::label_percent()
-	)+
-	scale_x_continuous(breaks=pretty_breaks(10))+
-	coord_cartesian(ylim=c(start_val,max(comp.pc$valpc)))+
-	labs(y='confirmed cases per capita (log scale)',
-			 x=paste0('Days since ', 
-			 				 format(start_val*100,scientific=F,digits=4),
-			 				 '% of the population infected'))
-```
 
 # Massachusetts Data 
 
@@ -258,7 +204,7 @@ ggplot(ma.hosp)+aes(date,hosp_frac)+
 
 ```
 
-MA is performing an inadequate number of tests per day. 
+Tests per day in MA. 
 
 
 ```{r ma-testing, fig.height=3,fig.width=5}
@@ -599,11 +545,69 @@ ggplot(testing %>% select(date,total_per_cap,state) %>% na.omit)+
 # 	# geom_boxplot(notch=F)+
 # 	geom_point(size=2)
 
+
+start_val= 0.0001
 ```
 
 
 
 # World data
+
+
+
+
+
+Below is the most important plot. We want to be like S. Korea or lower.  This is a comparison of growth per capita, where  "day 0" is approx `r format(start_val*100,scientific=F,digits=4)`% of the country's population. This is a log scale, and so exponential/viral growth is a straight line.  The dashed grey lines show epidemic growth when the fraction of infected population doubles every 2 days, or 3 days, etc.  
+```{r}
+
+
+comparison<- filter(covid,type %in% c('confirmed'))  %>%
+	group_by(region,date,type) %>%
+	summarize(val=sum(val)) %>%
+	group_by(region,type) %>%
+	mutate(day=row_number())%>%
+	filter( val>-10,region%in% c('Italy','US','S.Korea','Spain')) %>%
+	mutate(pop=ifelse(region=='Italy',  60462000,
+										ifelse(region=='US',  331003000,
+													 ifelse(region=='Spain',47007367	,
+													 			 ifelse(region=='S.Korea',  51269000)))))
+
+comp.pc<- comparison %>%  ungroup %>% rowwise %>%
+	mutate(valpc=val/pop, delta=abs(start_val-valpc)) %>%
+	ungroup %>% 
+	group_by(region) %>%
+	filter(day>=which.min(delta)) %>%
+	mutate(day=row_number()-1)
+
+labels<- comp.pc %>% group_by(region) %>% filter(day==max(day))
+
+template<- expand.grid(day=0:30,rate=c(2,3,4,5,10)) %>%
+	as.tbl %>%
+	mutate(region=paste(rate),valpc=start_val*2**(day/rate))
+
+gr.labels=tibble(text=c('every\n2 days','every\n3 days','every\n4 days',
+												'every\n5 days','every\n10 days'),
+								 x=c(8,13,18,22,22),
+								 y=c(.002,.002,.002,.002,.0004))
+
+ggplot(comp.pc)+
+	aes(x=day,y=valpc,group=c(region),color=region)+
+	theme(legend.position = "none")+
+	geom_line(size=1)+geom_point(size=1.5)+
+	geom_line(data=template,linetype=2,color='grey')+
+	geom_text(data=gr.labels,aes(label=text,group=NA,x=x,y=y),color='dark grey')+
+	geom_text_repel(data=labels,aes(label=region),color='black',direction='x',seed =0)+
+	scale_y_log10(breaks=round(filter(template,rate==2)$valpc,6),
+								# label=scales::label_percent()
+	)+
+	scale_x_continuous(breaks=pretty_breaks(10))+
+	coord_cartesian(ylim=c(start_val,max(comp.pc$valpc)))+
+	labs(y='confirmed cases per capita (log scale)',
+			 x=paste0('Days since ', 
+			 				 format(start_val*100,scientific=F,digits=4),
+			 				 '% of the population infected'))
+```
+
 
 This plot shows the spread of the virus over time across the world. We want the number of active cases  to drop to zero, the deaths to stay as low as possible, obviously, and the recovered cases to climb high. Confirmed is a cumulative count of everyone that has tested positive. 
 
