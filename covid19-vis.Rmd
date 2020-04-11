@@ -80,7 +80,7 @@ covid<- bind_rows(active,tmp)
 
 # data scrapped manually from mass.gov. very different than JHU
 ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
-	mutate(date=mdy(date),
+	mutate(date=ymd(date),
 				 val=confirmed,
 				 val.log=log(val),
 				 rn=row_number()-2)%>% 
@@ -178,9 +178,9 @@ ggplot(ma.gov %>% filter(!is.na(Deaths)))+
 	theme(legend.position = c(.2,.8))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
-	geom_point()+geom_line()+
 	geom_line(data=covid.fit(tmp,pred = 5),aes(y=val,color='exponential fit'),linetype=2)+
 	geom_point(data=covid.fit(tmp,pred = 5),aes(color='exponential fit',y=val))+
+	geom_point()+geom_line()+
 	labs(color=element_blank(),y="MA Deaths")
 ```
 
