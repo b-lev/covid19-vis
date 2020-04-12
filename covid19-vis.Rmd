@@ -265,7 +265,7 @@ To date, MA.gov has reported gender as "Female", "Male", or "unknown" only.
 ma.deaths<-suppressMessages(
 	read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/deaths.csv')
 )%>%
-	mutate(date=mdy(date))
+	mutate(date=ymd(date))
 
 tmp<- bind_rows(ma.deaths %>% group_by(var=gender) %>% summarize(val=n())  %>% mutate(type='deaths'),
 								select(ma.gov,date,contains('Gender_'))  %>% filter(date==max(date)) %>%
