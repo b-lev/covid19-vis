@@ -243,7 +243,7 @@ ggplot(inner_join(ma.demo,ma.gov.confirmed,by='demo'))+
 	geom_bar(stat='identity')+
 	scale_y_continuous(label=percent,breaks = pretty_breaks())+
 	# theme(axis.text.x = element_text(angle=0,hjust=1))+
-	geom_text(aes(label=val,y=val/pop*.9),color='yellow')+
+	geom_text(aes(label=val,y=val/pop*.9),color='orange')+
 	labs(x='Age Demographic',y='Fraction of that demo\'s population',title='MA Confirmed Cases')
 
 tmp<-ma.gov %>% select(date,contains("race_confirmed")) %>%
@@ -712,7 +712,7 @@ ggplot(rate %>% filter(deaths>15))+
 	aes(reorder(region,desc(rate)),rate)+
 	scale_y_continuous(label=percent,breaks=pretty_breaks(10))+
 	geom_bar(stat='identity')+
-	geom_text(aes(label=deaths,y=.001),color='yellow',hjust=0,angle=90)+
+	geom_text(aes(label=deaths,y=.001),color='orange',hjust=0,angle=90)+
 	labs(x=element_blank(),y="fatality rate")+
 	theme(legend.position="none",
 				axis.text.x = element_text(angle = 90, vjust = .5,hjust=1))
