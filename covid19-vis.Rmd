@@ -79,8 +79,8 @@ covid<- bind_rows(active,tmp)
 
 
 # data scrapped manually from mass.gov. very different than JHU
-ma.gov<-suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
-	mutate(date=ymd(date),
+ma.gov<- suppressMessages(read_csv('https://raw.githubusercontent.com/b-lev/massachusetts-covid19-report-archive/master/MA-stats.csv'))%>%
+	mutate(date=as.Date(date,tryFormats=c("%Y-%m-%d", "%m/%d/%y")),
 				 val=confirmed,
 				 val.log=log(val),
 				 rn=row_number()-2)%>% 
@@ -134,7 +134,7 @@ ggplot(ma.gov %>% select(date,val,delta) %>%na.omit)+
 	aes(date,delta)+
 	geom_bar(stat="identity")+
 	scale_y_continuous(breaks=pretty_breaks(10))+
-	scale_x_date(breaks="1 weeks",date_labels = "%b-%d")+
+	scale_x_date(breaks="2 weeks",date_labels = "%b-%d")+
 	labs(y="new cases in MA per day",x=element_blank())
 
 # adjust "rn>0" to fit to different parts of the data
@@ -160,7 +160,7 @@ ggplot()+
 						aes(date,val,color='actual'))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
-	scale_x_date(breaks="1 weeks",date_labels = "%b-%d")+
+	scale_x_date(breaks="2 weeks",date_labels = "%b-%d")+
 	theme(legend.position = c(.2,.8))+
 	labs(y="MA confirmed cases",x="",color=element_blank())
 ```
@@ -174,7 +174,7 @@ tmp<- ma.gov %>% filter(!is.na(Deaths)) %>%
 
 ggplot(ma.gov %>% filter(!is.na(Deaths)))+
 	aes(date,Deaths,color='actual')+
-	scale_x_date(breaks="3 days",date_labels = "%b-%d")+
+	scale_x_date(breaks="7 days",date_labels = "%b-%d")+
 	theme(legend.position = c(.2,.8))+
 	scale_y_continuous(breaks=pretty_breaks(5),label=comma,
 										 sec.axis = dup_axis())+
